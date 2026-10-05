@@ -1,0 +1,34 @@
+name: JChatControl
+version: '${project.version}'
+main: dev.jkaanof.jchatcontrol.bukkit.JChatControl
+api-version: '1.21'
+author: JKaanOF
+authors: [JKaanOF]
+description: AI-assisted chat moderation (profanity, racism, religion, language, politics) with minimal API usage.
+website: https://github.com/JKaan1/JChatControl
+
+commands:
+  jchatcontrol:
+    description: JChatControl admin command
+    usage: /<command> help
+    aliases: [jcc, chatcontrol]
+
+permissions:
+  jchatcontrol.*:
+    description: All JChatControl permissions
+    default: op
+    children:
+      jchatcontrol.admin: true
+      jchatcontrol.notify: true
+  jchatcontrol.admin:
+    description: Use /jcc commands
+    default: op
+  jchatcontrol.notify:
+    description: Receive staff alerts about violations
+    default: op
+  jchatcontrol.bypass:
+    description: Messages are never checked
+    default: false
+  jchatcontrol.bypass.ai:
+    description: Only local filters (word lists / regex) are used for this player, never the AI
+    default: false

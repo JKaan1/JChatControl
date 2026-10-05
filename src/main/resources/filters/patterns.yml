@@ -1,0 +1,55 @@
+# ==================================================================================================
+#  JChatControl - Regex desenleri / Regex patterns
+# --------------------------------------------------------------------------------------------------
+#  normalized : normalize edilmiş metinde aranır (küçük harf, ı->i ş->s ..., leetspeak çözülmüş, harf tekrarı
+#               tekleşmiş, kelimeler arasında TEK boşluk, noktalama YOK). Kelime öbekleri için idealdir.
+#  raw        : orijinal (sadece küçük harfe çevrilmiş) mesajda aranır. Link, IP, reklam için.
+#  Java regex sözdizimi. Tek tırnak içinde yaz ('\b' vb.).
+# ==================================================================================================
+
+profanity:
+  normalized:
+    - '\banan(i|in|izi|ini|nizi) (sik|sok)'
+    - '\bo ?c (cocugu|cocuklari)\b'
+    - '\bpic (kurusu|herif)\b'
+  raw:
+    # aralıklı / sansürlü yazımlar: "f.u.c.k", "f*ck", "s.i.k.t.i.r"
+    - 'f[\W_]*[u*@v][\W_]*c[\W_]*k'
+    - 's[\W_]*[i1ı!][\W_]*k[\W_]*t[\W_]*[i1ı!][\W_]*r'
+
+insult:
+  normalized:
+    - '\bgeri zekali\b'
+    - '\badi herif\b'
+    - '\bbeyin(siz)? ozurlu'
+    - '\b(salak|aptal|mal|gerizekali|esek|kopek|domuz|okuz|hayvan|ezik|gerzek)(sin|sun|siniz|sunuz)\b'
+
+racism:
+  normalized:
+    - '\bpis (arap|kurt|ermeni|yahudi|suriyeli|rum|turk|zenci|cingene|gavur)(lar|ler)?\b'
+    - '\b(arap|kurt|ermeni|yahudi|suriyeli|zenci|cingene|turk)(lar|ler)i? (pistir|hayvandir|olmeli|gebersin)'
+    - '\b(heil|seig|sieg) hitler\b'
+
+religion:
+  normalized:
+    - '\b(allah|tanri|peygamber|kuran)(ini|ina|in) (sik|sok)'
+
+threats:
+  normalized:
+    - '\bkendini (oldur|as)\b'
+    - '\b(kill|hang) (your ?self|urself)\b'
+    - '\b(adresini|evini) (biliyorum|bulurum|bulcam)\b'
+
+advertising:
+  raw:
+    - 'discord(?:\.gg|app\.com/invite|\.com/invite)\s*/\s*\w+'
+    - '(?:https?://|www\.)[\w.-]+\.[a-z]{2,}'
+    # domain (boşluksuz): "oyunum.com", "sunucu(dot)net", "test nokta com"
+    - '\b[\w-]{2,}(?:\.|\(dot\)|\[dot\]| nokta )(?:com|net|org|xyz|club|gg|io|me|pro|online|fun|tr)\b'
+    # sunucu adresleri: play.xxx, mc.xxx
+    - '\b(?:play|mc|oyna)\.[\w-]{2,}'
+    # IPv4 adresi
+    - '\b(?:\d{1,3}\.){3}\d{1,3}\b'
+  normalized:
+    - '\b(sunucuma|serverima|servere|sunucuya|sunucumuza|serverimiza) (gel|gelin|katil|katilin|bekleriz)\b'
+    - '\bjoin my server\b'

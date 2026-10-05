@@ -1,0 +1,463 @@
+# ==================================================================================================
+#   JChatControl - Yapay zeka destekli sohbet denetimi  |  AI assisted chat moderation
+#   Author: JKaanOF            Minecraft 1.21+ (Spigot / Paper / Purpur)
+# --------------------------------------------------------------------------------------------------
+#   Mesajlar EN UCUZDAN EN PAHALIYA doğru sırayla kontrol edilir. API'ye sadece gerçekten gerekenler gider:
+#
+#    1) Normalizasyon      : büyük/küçük harf, Türkçe karakter, leetspeak (4->a, 3->e, $->s), "siiiiik" -> "sik"
+#    2) Yasaklı kelimeler  : filters/blocked-words.yml + learned/blocked-words.txt  (exact / prefix / contains)
+#    3) Regex desenleri    : filters/patterns.yml (reklam, IP, link, özel kalıplar)
+#    4) Karar önbelleği    : aynı (normalize) mesaj daha önce AI'ya sorulduysa cevap tekrar kullanılır
+#    5) İzinli kelimeler   : mesajdaki tüm kelimeler biliniyorsa (filters/allowed-words.txt + learned) AI'ya gitmez
+#    6) Yapay zeka         : batch + tekilleştirme + rate-limit + sağlayıcı zinciri. Sonuçlar 4) ve 2)/5)'e öğretilir.
+#
+#   Her AI kararı dosyalara öğretilir: bir sonraki sefer aynı kelime/mesaj için API çağrısı YAPILMAZ.
+# ==================================================================================================
+
+# Mesaj dili dosyası: lang/tr.yml veya lang/en.yml (kendi dilini ekleyebilirsin)
+language: tr
+
+# Öğrenilen kelimelerin, AI önbelleğinin ve susturmaların otomatik kaydı (saniye)
+autosave-seconds: 300
+
+# --------------------------------------------------------------------------------------------------
+#  SOHBET
+# --------------------------------------------------------------------------------------------------
+chat:
+  enabled: true
+  # AI cevabı beklenirken ne olsun?
+  #  BLOCKING : Mesaj, AI cevap verene kadar bekletilir (en fazla blocking-timeout-ms). Sohbet thread'i async
+  #             olduğu için sunucu (TPS) etkilenmez. En güvenli mod.
+  #  DELAYED  : Mesaj iptal edilir, AI onaylayınca plugin tarafından gönderilir. Chat thread'i hiç beklemez.
+  #             (Diğer chat pluginlerinin formatı kullanılır; Paper'ın yeni renderer'ını kullanan pluginlerde
+  #             format farklı görünebilir.)
+  #  POST     : Mesaj hemen gönderilir, AI arkadan kontrol eder ve ihlal varsa ceza verir. En hızlı mod.
+  # Not: Yerel filtreler (kelime listeleri / regex) her modda ANINDA çalışır.
+  mode: BLOCKING
+  blocking-timeout-ms: 3000
+  # Dinleyici önceliği (BLOCKING/POST). LOWEST: diğer chat pluginlerinden önce kontrol et.
+  listener-priority: LOWEST
+
+# Özel mesaj komutları. Sayı = mesajdan önce atlanacak argüman sayısı (/msg <oyuncu> <mesaj> -> 1)
+private-messages:
+  enabled: true
+  # Komutlar main thread'de çalışır: yerel filtreler anında karar verir, AI (açıksa) arkadan kontrol edip ceza verir.
+  use-ai: true
+  # Susturulan oyuncu bu komutları da kullanamaz
+  mute-blocks: true
+  commands:
+    msg: 1
+    tell: 1
+    w: 1
+    whisper: 1
+    m: 1
+    pm: 1
+    dm: 1
+    r: 0
+    reply: 0
+    me: 0
+    mail: 2        # /mail send <oyuncu> <mesaj>
+    helpop: 0
+    ac: 0
+
+# Tabela ve kitaplar (sadece yerel filtreler, AI kullanılmaz)
+signs:
+  enabled: true
+books:
+  enabled: true
+
+# Büyük harf ve harf tekrarı düzeltme (filtrelemeden önce)
+caps:
+  enabled: true
+  min-length: 6
+  max-percent: 70        # harflerin %70'inden fazlası büyükse mesaj küçültülür
+  locale: tr             # küçültmede kullanılacak dil (tr: I -> ı)
+flood:
+  max-repeated-chars: 4  # "selaaaaaaam" -> "selaaaam" (0 = kapalı)
+
+# --------------------------------------------------------------------------------------------------
+#  FİLTRE
+# --------------------------------------------------------------------------------------------------
+filter:
+  censor-char: '*'
+  # Online oyuncu isimleri izinli kelime sayılır (isimler yüzünden AI'ya istek gitmez)
+  allow-player-names: true
+  normalize:
+    leetspeak: true          # 4 -> a, 3 -> e, 1/! -> i, 0 -> o, 5/$ -> s, 7 -> t, @ -> a
+    collapse-repeats: true   # "siiiiktir" -> "siktir" (listelerdeki kelimelere de aynı işlem uygulanır)
+    fold-diacritics: true    # ı->i ş->s ğ->g ü->u ö->o ç->c (Türkçe karakter kullanmayanlar için)
+    homoglyphs: true         # Kiril/Yunan benzeri harfler (а, е, о, р, с ...) -> latin
+  # "s i k t i r", "a.m.k" gibi aralıklı yazımları yakalar (en az bu kadar tek harf yan yana)
+  spaced-letters-min: 3
+  # Tüm kelimeleri birleştirip ("am k" -> "amk") contains/exact listesinde arar. Yanlış pozitif riski var.
+  check-compact: false
+  # İzinli kelime + Türkçe ek: "oyun" izinliyse "oyunlarımız" da izinli sayılır.
+  # Ayrıca izinli kelimeler, prefix/contains listesindeki yanlış eşleşmeleri engeller (örn. "şikayet").
+  allowed-stems:
+    enabled: true
+    min-stem-length: 4
+    max-suffix-length: 5
+  # config üzerinden ek izinli kelimeler (filters/allowed-words.txt'ye ek)
+  extra-allowed-words: []
+
+# --------------------------------------------------------------------------------------------------
+#  KATEGORİLER
+#   action : BLOCK (gönderilmez) | CENSOR (kelime yıldızlanır, bilinmiyorsa BLOCK) | WARN (gönderilir + uyarı) | LOG
+#   points : ihlal puanı (punishments bölümüne bakın)
+#   ai-description: yapay zekaya ne arayacağını anlatır (İngilizce daha iyi sonuç verir). Boş = AI bu kategoriye bakmaz.
+#   Kendi kategorini ekleyebilirsin; aynı id'yi blocked-words.yml / patterns.yml içinde kullan.
+# --------------------------------------------------------------------------------------------------
+categories:
+  profanity:
+    enabled: true
+    display-name: '&cKüfür'
+    action: CENSOR
+    points: 1
+    ai-description: "swearing, vulgar or obscene words (Turkish 'küfür'), including abbreviations and masked forms such as amk, aq, mk, oç, sg, a.q, s1k, f*ck"
+  insult:
+    enabled: true
+    display-name: '&cHakaret'
+    action: BLOCK
+    points: 2
+    ai-description: "insulting, humiliating or harassing another person (e.g. salak, aptal, gerizekalı, mal, beyinsiz, idiot, retard), including family insults"
+  racism:
+    enabled: true
+    display-name: '&4Irkçılık'
+    action: BLOCK
+    points: 4
+    ai-description: "racism, ethnic/national slurs or hate against a race, ethnicity or nationality (Turks, Kurds, Arabs, Syrians, Armenians, Greeks, Jews, Black people, Roma ...)"
+  religion:
+    enabled: true
+    display-name: '&6Din'
+    action: BLOCK
+    points: 3
+    ai-description: "insulting or mocking a religion, holy figures, holy books, believers or atheists; religious provocation, sectarian hate or proselytizing"
+  language:
+    enabled: true
+    display-name: '&6Dil'
+    action: BLOCK
+    points: 3
+    ai-description: "discrimination, mockery or provocative debates about languages and dialects (e.g. hostility to Kurdish, Arabic, Turkish or English speakers, 'speak only X' attacks)"
+  politics:
+    enabled: true
+    display-name: '&6Siyaset'
+    action: BLOCK
+    points: 2
+    ai-description: "political propaganda, promoting or insulting politicians/parties/ideologies, election talk, divisive political or separatist debates"
+  sexual:
+    enabled: true
+    display-name: '&dCinsellik'
+    action: BLOCK
+    points: 3
+    ai-description: "sexual content, sexual harassment or explicit sexual remarks"
+  threats:
+    enabled: true
+    display-name: '&4Tehdit'
+    action: BLOCK
+    points: 4
+    ai-description: "threats of violence, telling someone to kill themselves, doxxing or sharing personal information"
+  advertising:
+    enabled: true
+    display-name: '&eReklam'
+    action: BLOCK
+    points: 2
+    ai-description: "advertising other Minecraft servers, server IPs, discord invites or links"
+
+# --------------------------------------------------------------------------------------------------
+#  YAPAY ZEKA
+# --------------------------------------------------------------------------------------------------
+ai:
+  enabled: true
+  # Sağlayıcı zinciri (aşağıdaki providers bölümündeki isimler). Sırayla denenir.
+  chain:
+    - ollama
+  #  FALLBACK : ilk çalışan sağlayıcının cevabı kullanılır, hata olursa sıradakine geçilir.
+  #  ESCALATE : ilk sağlayıcı (örn. ucuz/ücretsiz bir karar modeli) emin değilse (skor uncertain aralığında)
+  #             sadece o mesajlar bir sonraki sağlayıcıya (örn. büyük LLM) sorulur. API kullanımını en aza indirir.
+  strategy: FALLBACK
+  escalation:
+    uncertain-min: 0.35
+    uncertain-max: 0.75
+  # Ne zaman AI'ya sorulsun?
+  #  UNKNOWN_WORDS   : mesajda izinli listede OLMAYAN kelime veya şüpheli kelime varsa (önerilen)
+  #  SUSPICIOUS_ONLY : sadece filters/suspicious-words.txt içindeki bir kelime geçerse (en az API kullanımı)
+  #  ALWAYS          : önbellekte olmayan her mesaj (en yüksek güvenlik, en çok API)
+  trigger: UNKNOWN_WORDS
+  # UNKNOWN_WORDS modunda bu kadar bilinmeyen kelimeye kadar AI'ya sorma (0 = tek bilinmeyen kelime bile sorar)
+  max-unknown-words-without-ai: 0
+  # Bu kadar harften kısa mesajlar AI'ya gitmez ("ok", "gg" ...). Şüpheli kelime varsa yine sorulur.
+  min-letters: 3
+  # AI'ya gönderilecek maksimum karakter
+  max-message-length: 256
+  # AI "ihlal" dese bile güven skoru bunun altındaysa temiz sayılır (yanlış pozitifleri azaltır)
+  min-confidence: 0.6
+  # AI cevabındaki bilinmeyen kategoriler bu kategoriye atanır
+  default-category: profanity
+  # AI'ya ulaşılamazsa / limit dolarsa: ALLOW (mesaj geçer, yerel filtreler yine çalışır) | BLOCK (mesaj engellenir)
+  on-failure: ALLOW
+  hard-timeout-ms: 15000
+  # İstek/cevapları konsola yaz (sorun giderme)
+  debug: false
+
+  # Kısa aralıkta gelen mesajlar TEK istekte gönderilir (sistem promptu bir kez ödenir)
+  batch:
+    enabled: true
+    window-ms: 150
+    max-messages: 10
+
+  limits:
+    # Dakikada en fazla API isteği (0 = sınırsız). Aşılırsa on-failure uygulanır.
+    requests-per-minute: 60
+    # Bir oyuncunun dakikada tetikleyebileceği AI kontrolü (spam ile API yakmayı engeller)
+    player-checks-per-minute: 6
+
+  prompt:
+    # Oyuncuların kullandığı diller (prompta eklenir)
+    languages: [Turkish, English]
+    # Sunucuna özel ek kurallar (İngilizce önerilir)
+    extra-rules: ""
+    # Tüm promptu değiştirmek için doldur. Yer tutucular: {categories} {languages} {extra}
+    # Cevap formatı değişmemeli: {"r":[{"i":0,"f":false,"c":[],"w":[],"s":0.0}]}
+    template: ""
+
+  # ------------------------------------------------------------------------------------------------
+  #  SAĞLAYICILAR - istediğin kadar ekle, chain listesinde kullan.
+  #   type: ollama | openai (tüm OpenAI uyumlu API'ler) | anthropic | gemini |
+  #         openai-moderation | perspective | custom
+  #   api-key: "env:DEGISKEN_ADI" yazarsan anahtar ortam değişkeninden okunur (config'e yazmana gerek kalmaz)
+  #   parser (sohbet modelleri için):
+  #     json   : kendi formatımız, batch destekler (normal LLM'ler: Llama, Qwen, Gemma, GPT, Claude, Gemini)
+  #     guard  : "safe" / "unsafe S1,S10" cevaplayan karar modelleri (Llama Guard, Granite Guardian ...)
+  #     yes-no : "Yes" / "No" cevaplayan karar modelleri
+  #     label  : etiket döndüren sınıflandırıcılar (flag-labels listesindeki etiket geçerse ihlal)
+  #   Ortak: timeout-ms, headers, circuit-breaker (art arda hata sonrası sağlayıcıyı bir süre devre dışı bırakır)
+  # ------------------------------------------------------------------------------------------------
+  providers:
+
+    # Yerel: Ollama (https://ollama.com)  ->  ollama pull qwen2.5:3b
+    ollama:
+      type: ollama
+      base-url: http://localhost:11434
+      model: qwen2.5:3b
+      parser: json
+      keep-alive: 30m          # model RAM'de kalsın (ilk istek gecikmesi olmaz)
+      num-ctx: 2048
+      max-tokens: 160
+      temperature: 0.0
+      disable-thinking: false  # qwen3 / deepseek-r1 gibi düşünen modellerde true yap
+      timeout-ms: 4000
+      max-batch: 10
+      circuit-breaker:
+        failures: 3
+        cooldown-seconds: 30
+
+    # Yerel: LM Studio / vLLM / llama.cpp server / LocalAI / Jan / KoboldCpp (OpenAI uyumlu)
+    lmstudio:
+      type: openai
+      base-url: http://localhost:1234/v1
+      model: qwen2.5-3b-instruct
+      api-key: ""
+      parser: json
+      json-response-format: true   # sunucu response_format desteklemiyorsa false yap
+      max-tokens: 160
+      timeout-ms: 4000
+
+    # API: OpenAI
+    openai:
+      type: openai
+      base-url: https://api.openai.com/v1
+      model: gpt-4.1-nano
+      api-key: "env:OPENAI_API_KEY"
+      parser: json
+      max-tokens: 160
+      # max-tokens-field: max_completion_tokens   # bazı yeni modeller bunu ister
+      timeout-ms: 5000
+
+    # API: Groq (çok hızlı, ücretsiz katman)  - OpenAI uyumlu
+    groq:
+      type: openai
+      base-url: https://api.groq.com/openai/v1
+      model: llama-3.1-8b-instant
+      api-key: "env:GROQ_API_KEY"
+      parser: json
+      timeout-ms: 4000
+
+    # API: OpenRouter (yüzlerce model tek anahtar) - OpenAI uyumlu
+    openrouter:
+      type: openai
+      base-url: https://openrouter.ai/api/v1
+      model: meta-llama/llama-3.1-8b-instruct
+      api-key: "env:OPENROUTER_API_KEY"
+      parser: json
+      timeout-ms: 6000
+
+    # API: Anthropic Claude. Sistem promptu önbelleğe alınır (prompt caching), sadece kısa mesaj kısmı ödenir.
+    # Daha ucuz bir seçenek için model: claude-haiku-4-5
+    anthropic:
+      type: anthropic
+      base-url: https://api.anthropic.com/v1
+      model: claude-opus-5-5
+      api-key: "env:ANTHROPIC_API_KEY"
+      parser: json
+      effort: low                 # low | medium | high  (sınıflandırma için low yeterli)
+      cache-system-prompt: true
+      fallbacks: default          # güvenlik reddinde otomatik yedek model ("none" = kapalı)
+      timeout-ms: 15000
+
+    # API: Google Gemini
+    gemini:
+      type: gemini
+      base-url: https://generativelanguage.googleapis.com/v1beta
+      model: gemini-2.5-flash-lite
+      api-key: "env:GEMINI_API_KEY"
+      parser: json
+      thinking-budget: 0          # -1 = gönderme (modelin varsayılanı)
+      timeout-ms: 5000
+
+    # KARAR MODELİ (yerel): Llama Guard 3  ->  ollama pull llama-guard3:1b
+    # "safe" / "unsafe\nS10" cevaplar. Batch desteklemez, her mesaj tek istek. Kelime döndürmez.
+    llama-guard:
+      type: ollama
+      base-url: http://localhost:11434
+      model: llama-guard3:1b
+      parser: guard
+      use-system-prompt: false
+      max-tokens: 16
+      timeout-ms: 4000
+      default-category: insult
+      category-map:           # Llama Guard kategori kodu -> plugin kategorisi (ignore = yok say)
+        S1: threats           # violent crimes
+        S2: ignore            # non-violent crimes
+        S3: sexual            # sex crimes
+        S4: sexual            # child exploitation
+        S5: insult            # defamation
+        S6: ignore            # specialized advice
+        S7: threats           # privacy
+        S8: ignore            # intellectual property
+        S9: threats           # weapons
+        S10: racism           # hate
+        S11: threats          # self-harm
+        S12: sexual           # sexual content
+        S13: politics         # elections
+        S14: ignore           # code interpreter abuse
+
+    # KARAR MODELİ (API): OpenAI Moderation - OpenAI anahtarı ile ÜCRETSİZ, batch destekler.
+    openai-moderation:
+      type: openai-moderation
+      base-url: https://api.openai.com/v1
+      model: omni-moderation-latest
+      api-key: "env:OPENAI_API_KEY"
+      threshold: 0.5
+      thresholds:             # kategori bazlı eşik (opsiyonel)
+        harassment: 0.6
+      default-category: insult
+      category-map:
+        harassment: insult
+        harassment/threatening: threats
+        hate: racism
+        hate/threatening: racism
+        sexual: sexual
+        sexual/minors: sexual
+        violence: threats
+        violence/graphic: ignore
+        self-harm: ignore
+        self-harm/intent: threats
+        self-harm/instructions: ignore
+        illicit: ignore
+        illicit/violent: ignore
+      timeout-ms: 4000
+
+    # KARAR MODELİ (API): Google Perspective (toxicity)
+    perspective:
+      type: perspective
+      api-key: "env:PERSPECTIVE_API_KEY"
+      attributes: [TOXICITY, INSULT, PROFANITY, IDENTITY_ATTACK, THREAT]
+      languages: []            # boş = otomatik
+      threshold: 0.7
+      category-map:
+        TOXICITY: profanity
+        SEVERE_TOXICITY: profanity
+        INSULT: insult
+        PROFANITY: profanity
+        IDENTITY_ATTACK: racism
+        THREAT: threats
+      timeout-ms: 4000
+
+    # KARAR MODELİ (özel): kendi sınıflandırıcın (Detoxify, BERT, HuggingFace endpoint, kendi API'n ...)
+    custom:
+      enabled: true
+      type: custom
+      url: http://localhost:5000/classify
+      body: '{"text": {message}}'      # {message} -> JSON string olarak eklenir
+      api-key: ""
+      response:
+        # Aşağıdakilerden birini kullan:
+        scores-path: ""                # {"toxic":0.9,"insult":0.1} veya [{"label":"toxic","score":0.9}]
+        flagged-path: "flagged"        # true/false
+        flagged-values: []             # örn. ["toxic","unsafe"] (boş = true/1/yes/unsafe)
+        score-path: "score"
+        category-path: "category"
+        text-path: ""                  # cevap metin ise (guard / yes-no / label parser ile okunur)
+      threshold: 0.5
+      default-category: profanity
+      category-map: {}
+      timeout-ms: 3000
+
+# Örnek ESCALATE zinciri (en düşük maliyet):
+#   chain: [openai-moderation, ollama]   strategy: ESCALATE
+#   -> Ücretsiz moderasyon modeli karar verir, sadece emin olmadığı mesajlar yerel LLM'e gider.
+# Örnek yedekli zincir:
+#   chain: [ollama, groq]                strategy: FALLBACK
+#   -> Yerel model kapalıysa/hata verirse Groq kullanılır.
+
+# --------------------------------------------------------------------------------------------------
+#  ÖNBELLEK - AI kararları normalize mesaj bazında saklanır (data/ai-cache.tsv)
+# --------------------------------------------------------------------------------------------------
+cache:
+  enabled: true
+  max-entries: 50000
+  clean-ttl-hours: 720      # 30 gün (0 = süresiz)
+  flagged-ttl-hours: 720
+
+# --------------------------------------------------------------------------------------------------
+#  ÖĞRENME - AI kararlarını kelime listelerine ekler, böylece aynı kelime için tekrar API kullanılmaz
+# --------------------------------------------------------------------------------------------------
+learning:
+  enabled: true
+  min-word-length: 3
+  max-word-length: 24
+  max-candidates: 50000
+  allowed-words:
+    enabled: true
+    # Bilinmeyen bir kelime, AI'nın TEMİZ dediği bu kadar farklı mesajda görülürse learned/allowed-words.txt'ye eklenir
+    min-clean-sightings: 3
+  blocked-words:
+    enabled: true
+    # AI'nın bildirdiği kelime, bu güven skorunun üstündeyse learned/blocked-words.txt'ye eklenir
+    min-confidence: 0.85
+    # true: kelimeler önce learned/pending-words.txt'ye düşer, /jcc learn approve <kelime> ile onaylanır
+    require-approval: false
+
+# --------------------------------------------------------------------------------------------------
+#  BİLDİRİM / CEZA / LOG
+# --------------------------------------------------------------------------------------------------
+notify:
+  staff: true      # jchatcontrol.notify yetkisi olanlara bildirim
+  console: true
+
+punishments:
+  enabled: true
+  # İhlal puanları bu kadar dakika sonra silinir
+  decay-minutes: 30
+  # Puan eşiği: konsoldan çalıştırılacak komutlar. {player} {uuid} {points} {category}
+  # Dahili susturma: jcc mute <oyuncu> <süre> [sebep]  (başka bir ceza plugini de kullanabilirsin)
+  thresholds:
+    3:
+      - 'jcc mute {player} 5m Sohbet kurallarını ihlal (otomatik)'
+    6:
+      - 'jcc mute {player} 30m Sohbet kurallarını ihlal (otomatik)'
+    10:
+      - 'jcc mute {player} 1d Sohbet kurallarını ağır ihlal (otomatik)'
+
+logging:
+  violations: true   # logs/violations-YYYY-MM-DD.log

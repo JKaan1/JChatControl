@@ -1,0 +1,174 @@
+# ==================================================================================================
+#  JChatControl - İzinli kelimeler / Allowed words
+# --------------------------------------------------------------------------------------------------
+#  Bir mesajdaki TÜM kelimeler bu listede (veya learned/allowed-words.txt içinde) varsa ve şüpheli kelime
+#  yoksa, mesaj yapay zekaya HİÇ gönderilmez. Liste ne kadar uzunsa API kullanımı o kadar az olur.
+#
+#  - Kelimeler normalize edilir: büyük/küçük harf, Türkçe karakter, tekrar eden harf fark etmez.
+#  - Türkçe ekler: "oyun" listede ise "oyunlar", "oyunumuz" da izinlidir (config: filter.allowed-stems).
+#  - Virgülle ayırarak bir satıra birden çok kelime yazabilirsin. # ile başlayan satırlar yorumdur.
+#  - Neredeyse her zaman hakaret/argo olarak kullanılan kelimeleri BURAYA EKLEME, yapay zeka bağlama baksın.
+#    (Minecraft yaratık isimleri eklidir; "domuzsun" gibi kalıplar patterns.yml ile yakalanır.)
+#  - Yapay zekanın temiz bulduğu kelimeler otomatik olarak learned/allowed-words.txt dosyasına eklenir.
+# ==================================================================================================
+
+# --- Sohbet kısaltmaları / chat slang
+sa, as, selam, selamlar, slm, merhaba, mrb, mrhb, naber, nbr, nasılsın, nasilsin, nasılsınız, iyiyim, iyidir, iyi
+sağol, sağolun, saol, sağ ol, eyvallah, eyv, eyw, eyvah, tşk, tsk, teşekkür, teşekkürler, tesekkurler, rica, ederim
+tamam, tmm, tm, ok, okey, okay, olur, olmaz, peki, evet, hayır, hayir, yok, var, belki, aynen, kesinlikle, tabi, tabii
+kanka, knk, kardeşim, kardeş, kardes, abi, abla, abim, ablam, hocam, dostum, dost, arkadaşım, arkadaş, reis, kral
+xd, xdd, xD, lol, lmao, haha, hahaha, hehe, hihi, jsjs, ksksks, sjsj, asd, asdf, :d, gg, ggwp, wp, ez, gl, hf, glhf
+afk, brb, bb, bye, görüşürüz, gorusuruz, görüşmek, üzere, hoşçakal, hoscakal, iyi geceler, günaydın, gunaydin
+iyi akşamlar, kolay gelsin, geçmiş olsun, hayırlı, hayirli, tebrikler, tebrik, helal, olsun, maşallah, inşallah
+pls, plz, lütfen, lutfen, rica, ediyorum, bi, bir, bişey, bisey, birşey, birsey, hiç, hic, hiçbir, şey, sey, şu, bu, o
+öyle, böyle, şöyle, oyle, boyle, soyle, nasıl, nasil, neden, niye, niçin, nicin, ne, nerede, nerde, nereye, nereden
+kim, kime, kimin, kimse, kimi, hangi, hangisi, kaç, kac, kaçta, ne zaman, şimdi, simdi, sonra, önce, once, hemen
+yine, gene, tekrar, artık, artik, hala, hâlâ, daha, en, çok, cok, az, biraz, birazcık, fazla, az, sadece, bile
+ama, fakat, ancak, lakin, ve, veya, ya, yada, ile, için, icin, gibi, kadar, göre, gore, rağmen, ragmen, diye, de, da
+ki, mi, mı, mu, mü, misin, mısın, musun, müsün, miyim, mıyım, değil, degil, değilim, değilsin, ise, eğer, eger
+çünkü, cunku, yani, mesela, örneğin, aslında, aslinda, galiba, sanırım, sanirim, herhalde, acaba, bari, hadi, haydi
+hey, heyy, ay, of, off, uff, vay, vay be, oha, wow, ooo, aaa, eee, hmm, hm, ıı, ii, hıhı, hıı, ehh, ah, oh, ya, yaa
+
+# --- Zamirler / pronouns
+ben, sen, biz, siz, onlar, beni, seni, onu, bizi, sizi, onları, bana, sana, ona, bize, size, onlara, benim, senin
+onun, bizim, sizin, onların, bende, sende, onda, bizde, sizde, onlarda, benden, senden, ondan, bizden, sizden
+kendim, kendin, kendi, kendisi, kendimiz, herkes, hepsi, hepimiz, hepiniz, bazı, bazi, birisi, biri, diğer, diger
+burası, burasi, burada, burda, buraya, oraya, orada, orda, şurada, surada, içeri, iceri, dışarı, disari, yukarı
+yukari, aşağı, asagi, yan, yanında, yaninda, ön, arka, arkada, üst, ust, alt, alta, üstte, altta, sağa, sola, ileri, geri
+
+# --- Fiiller / verbs (kök + yaygın çekimler)
+gel, gelin, geliyorum, geliyom, geldim, geldin, geldi, gelir, gelecek, gelcem, gelsene, gelme, gelmek
+git, gidin, gidiyorum, gidiyom, gittim, gitti, gider, gidecek, gitcem, gitme, gitmek, gidelim, gidiyoruz
+yap, yapın, yapıyorum, yapiyorum, yapıyom, yaptım, yaptin, yaptı, yapar, yapacak, yapcam, yapma, yapmak, yapalım
+et, ediyorum, ettim, etti, eder, edecek, etme, etmek, edelim, edin
+al, alın, alıyorum, aldım, aldı, alır, alacak, alcam, alma, almak, alalım
+ver, verin, veriyorum, verdim, verdi, verir, verecek, vercem, verme, vermek, verelim, versene
+bak, bakın, bakıyorum, baktım, baktı, bakar, bakacak, bakcam, bakma, bakmak, bakalım, baksana
+gör, gördüm, gördü, görür, görecek, görmek, görüyorum, gorusuruz
+bil, biliyorum, bilmiyorum, bilmiyom, bildim, bilir, bilmem, bilmek, biliyon, biliyosun, biliyor
+de, dedim, dedi, diyor, diyorum, diyom, demek, deme, dersin, desene, söyle, söyledim, söylüyorum, söylemek
+konuş, konuşuyorum, konuştum, konuşmak, konuşalım, yaz, yazdım, yazıyorum, yazmak, yazın, oku, okudum, okumak
+oyna, oynuyorum, oynuyom, oynadım, oynadı, oynar, oynamak, oynayalım, oynayan, oynayın, oynasana
+bekle, bekleyin, bekliyorum, bekliyom, bekledim, beklemek, bekle biraz
+kal, kaldım, kaldı, kalır, kalmak, kalsın, dur, durun, duruyorum, durdum, durmak, dursun
+ol, oldu, oldum, olur, olmak, olsun, olacak, olcak, oluyor, olmuyor, olmadı, olabilir, olamaz
+iste, istiyorum, istiyom, istedim, istemek, istemiyorum, istersen, istersin, isteyen
+bul, buldum, buldu, bulur, bulmak, buluyorum, bulamadım, bulamıyorum
+kır, kırdım, kırmak, kaz, kazdım, kazmak, kazıyorum, inşa, kur, kurdum, kurmak, kuruyorum, yık, yıktım, yıkmak
+öl, öldüm, öldü, ölmek, öldür, öldürdüm, öldürdü, öldürmek, doğ, doğdum, doğmak, respawn
+sat, sattım, satmak, karşı, karşılık, karşılığında, karşılığı, karşılıklı, karşılaş, karşılaştım, satıyorum, satıyom, satın, satılık, alım, satım, takas, değiş, değiştir, değiştirmek
+kazan, kazandım, kazandı, kazanmak, kaybet, kaybettim, kaybetti, kaybetmek, yen, yendim, yenmek, yenildim
+uç, uçmak, uçuyorum, koş, koşmak, koşuyorum, zıpla, zıplamak, yüz, yüzmek, düş, düştüm, düşmek
+aç, açtım, açmak, açın, kapat, kapattım, kapatmak, kapa, gir, girdim, girmek, girin, çık, çıktım, çıkmak, çıkın
+çalış, çalışıyorum, çalışmak, çalıştı, bitir, bitirdim, bitirmek, bitti, bitmek, başla, başladım, başlamak, başladı
+yardım, yardımcı, yardım et, yardım edin, yardim, yardimci
+dene, denedim, denemek, deneyin, anla, anladım, anlamadım, anlamak, anladın, anlıyorum
+sev, sevdim, seviyorum, sevmek, beğen, beğendim, beğenmek, güzel, guzel
+ışınla, ışınlan, tp, tpa, tpaccept, tpahere, ışınlanmak, işınla, isinla
+yat, yattım, yatmak, uyu, uyudum, uyumak, uyan, uyandım, ye, yedim, yemek, iç, içtim, içmek
+düşün, düşünüyorum, düşündüm, hatırla, unut, unuttum, unutmak, getir, getirdim, getirmek, götür, götürdüm, at, attım
+koy, koydum, koymak, topla, topladım, toplamak, ekle, ekledim, eklemek, sil, sildim, silmek, kaydet, yükle
+bağlan, bağlandım, baglan, düşer, lag, lagg, laggy, kasıyor, kasma, donuyor, dondu, atıldım, atildim
+
+# --- İsimler / sıfatlar (genel)
+adam, kadın, kız, kiz, erkek, çocuk, cocuk, insan, insanlar, oyuncu, oyuncular, kişi, kisi, millet, ekip, takım
+takim, grup, klan, lonca, guild, ortak, ortaklık, yeni, eski, büyük, buyuk, küçük, kucuk, uzun, kısa, kisa
+hızlı, hizli, yavaş, iyi, kötü, kotu, zor, kolay, güçlü, guclu, zayıf, tatlı, tatli, komik, eğlenceli, sıkıcı, sikici
+sıkıldım, sikildim, sıkıntı, sikinti, şikayet, sikayet, şikayetçi, sıkı, siki, sıkıştım, sikistim, sıkışmak
+doğru, dogru, yanlış, yanlis, gerçek, gercek, yalan, boş, bos, dolu, açık, acik, kapalı, kapali, hazır, hazir
+pahalı, ucuz, bedava, ücretsiz, para, coin, coins, kredi, fiyat, ödül, odul, hediye, kasa, kasalar, anahtar, key
+gün, gun, gece, sabah, öğlen, akşam, aksam, saat, dakika, saniye, hafta, ay, yıl, yil, bugün, bugun, yarın
+yarin, dün, dun, zaman, vakit, an, sefer, kere, kez, defa, ilk, son, sonra, önce, şimdilik, simdilik
+ev, evim, oda, kapı, kapi, pencere, duvar, çatı, cati, zemin, bahçe, bahce, köy, koy, şehir, sehir, kale, kule
+okul, ders, sınav, sinav, ödev, odev, iş, is, işim, tatil, hafta sonu, okuldan, eve
+anne, baba, annem, babam, kardeşim, ablam, abim, aile, ailem, dede, nine, teyze, amca, dayı, dayi, hala, kuzen
+yemek, su, ekmek, et, süt, sut, çay, cay, kahve, pizza, hamburger, döner, doner, tatlı, meyve, elma, havuç
+renk, kırmızı, kirmizi, mavi, yeşil, yesil, sarı, sari, siyah, beyaz, mor, pembe, turuncu, gri, kahverengi, lacivert
+bir, iki, üç, uc, dört, dort, beş, bes, altı, alti, yedi, sekiz, dokuz, on, yirmi, otuz, kırk, kirk, elli, altmış
+yetmiş, seksen, doksan, yüz, bin, milyon, milyar, yarım, yarim, çeyrek, tane, adet, stack, stak, deste
+sorun, problem, hata, bug, buglı, açık, hile, hileci, hack, hacker, xray, fly, killaura, report, rapor, şikayet
+kural, kurallar, ceza, ban, banlandım, mute, kick, uyarı, uyari, yetki, yetkili, yetkililer, admin, adminler
+mod, moderatör, moderator, rehber, helper, owner, kurucu, sahip, yönetici, staff, vip, mvp, premium, rütbe, rank
+sunucu, server, sunucuda, serverda, lobi, lobby, hub, spawn, warp, home, sethome, menü, menu, market, shop
+mağaza, magaza, site, discord, dc, ts, youtube, twitch, yayın, yayin, video, kanal, abone, link, ip
+puan, skor, sıra, sira, sıralama, top, liste, seviye, level, lvl, xp, exp, tecrübe, görev, gorev, quest, etkinlik
+event, turnuva, yarışma, kazanan, birinci, ikinci, üçüncü, rekor, başarı, basari, achievement, ödül
+
+# --- Duygular / sohbet
+mutlu, üzgün, uzgun, kızgın, sinirli, sinirlendim, yorgun, yoruldum, aç, acıktım, susadım, hasta, iyileş
+seviyorum, sevdim, özledim, ozledim, merak, merak ettim, bilmem, bilmiyorum, umarım, umarim, keşke, keske
+harika, mükemmel, mukemmel, süper, super, efsane, müthiş, muthis, şahane, sahane, berbat, idare, fena, değil
+sağlık, saglik, kolay, gelsin, helal, bravo, aferin, adamsın, kralsın, kralsin, efsanesin, iyisin, sağolasın
+şaka, saka, şakaydı, sakaydi, ciddi, ciddiyim, gerçekten, gercekten, valla, vallahi, billahi, yemin, ederim
+özür, ozur, pardon, kusura, bakma, affedersin, sorry, sry, np, no problem, önemli, onemli, sorun değil
+
+# --- Minecraft (TR)
+blok, bloklar, taş, tas, toprak, çimen, cimen, kum, çakıl, cakil, odun, kütük, kutuk, tahta, kereste, yaprak
+ağaç, agac, fidan, tohum, buğday, bugday, havuç, havuc, patates, pancar, şeker, seker, kamış, kamis, kabak, karpuz
+elmas, demir, altın, altin, kömür, komur, bakır, bakir, zümrüt, zumrut, kızıltaş, kiziltas, redstone, lapis
+obsidyen, obsidiyen, netherit, netherite, ametist, kuvars, kristal, cevher, maden, madenci, madencilik, kazma
+balta, kürek, kurek, çapa, capa, kılıç, kilic, yay, ok, arbalet, mızrak, mizrak, kalkan, zırh, zirh, miğfer
+kask, göğüslük, gogusluk, pantolon, bot, botlar, elytra, kanat, büyü, buyu, büyülü, enchant, örs, ors
+fırın, firin, ocak, çalışma masası, masa, sandık, sandik, sandıklar, varil, huni, ray, vagon, tekne, kayık
+yatak, yataklar, meşale, mesale, fener, kapı, tuzak, piston, yapışkan, gözlemci, tekrarlayıcı, karşılaştırıcı
+kaynak, iksir, iksirler, şişe, sise, kova, su kovası, lav, lavı, ateş, ates, buz, kar, yağmur, yagmur, fırtına
+mağara, magara, kanyon, dağ, dag, deniz, okyanus, nehir, göl, gol, orman, çöl, col, ova, bataklık, ada
+köylü, koylu, köylüler, ticaret, takas, zombi, zombie, iskelet, örümcek, orumcek, creeper, enderman, ejderha
+wither, blaze, ghast, slime, cadı, cadi, yağmacı, yagmaci, golem, kurt, kedi, at, koyun, tavuk, inek, domuz
+papağan, papagan, kurbağa, kurbaga, balık, balik, yunus, kaplumbağa, arı, ari, tilki, panda, lama, deve
+nether, end, overworld, portal, kale, köy, tapınak, tapinak, gemi, batık, hazine, harita, pusula, saat
+farm, çiftlik, ciftlik, tarla, hasat, ekin, otomatik, makine, sistem, fabrika, depo, üs, us, base, inşaat
+survival, skyblock, bedwars, skywars, factions, prison, creative, kreatif, hardcore, pvp, pve, kitpvp, duel
+uhc, parkour, minigame, oyun, oyunu, oyunlar, harita, map, sezon, wipe, reset, dünya, dunya, world, biome
+
+# --- English common words
+i, me, my, mine, you, your, yours, he, him, his, she, her, it, its, we, us, our, they, them, their, this, that, these
+those, a, an, the, and, or, but, so, because, if, then, than, when, where, why, what, who, whom, which, how, there
+here, is, am, are, was, were, be, been, being, do, does, did, done, doing, have, has, had, having, will, would
+can, could, shall, should, may, might, must, not, no, yes, yeah, yep, yup, nope, nah, ok, okay, sure, maybe
+please, thanks, thank, thx, ty, welcome, hello, hi, hey, hiya, sup, yo, bye, goodbye, cya, see, later, soon
+good, bad, nice, cool, great, awesome, amazing, best, better, worse, worst, fine, alright, right, wrong, true
+false, real, fake, easy, hard, fast, slow, big, small, little, long, short, new, old, young, high, low, full, empty
+open, close, closed, first, last, next, other, another, same, different, more, most, less, least, much, many, few
+some, any, all, every, each, both, either, neither, none, nothing, something, anything, everything, someone
+anyone, everyone, nobody, somebody, anybody, everybody, again, already, also, always, never, often, sometimes
+still, just, only, even, very, really, too, quite, almost, enough, about, above, after, against, along, around
+at, before, behind, below, between, by, down, during, for, from, in, inside, into, near, of, off, on, onto, out
+outside, over, through, to, toward, under, until, up, upon, with, within, without, now, today, tomorrow, yesterday
+tonight, morning, night, day, week, month, year, time, minute, minutes, second, seconds, hour, hours, ago
+go, going, gone, went, come, coming, came, get, getting, got, give, gave, given, take, took, taken, make, made
+making, know, knew, known, think, thought, see, saw, seen, look, looking, want, wanted, need, needed, use, used
+find, found, tell, told, ask, asked, work, working, worked, try, trying, tried, leave, left, call, called, keep
+let, begin, began, start, started, stop, stopped, help, helped, play, playing, played, run, running, ran, move
+live, believe, bring, brought, happen, write, wrote, sit, stand, lose, lost, pay, paid, meet, include, continue
+set, learn, change, lead, understand, watch, follow, create, speak, read, spend, grow, win, won, offer, remember
+love, like, liked, consider, appear, buy, bought, wait, waiting, serve, die, died, send, sent, build, built
+stay, fall, cut, reach, kill, killed, remain, sell, sold, trade, join, joined, quit, sleep, eat, drink, mine
+craft, crafting, fight, fighting, attack, defend, protect, explore, farm, farming, fish, fishing, hunt, ride
+fly, flying, jump, swim, walk, drop, dropped, pick, collect, gather, spawn, respawned, teleport, tp, claim
+friend, friends, team, guys, guy, man, bro, dude, mate, buddy, people, player, players, noob, pro, newbie, admin
+mod, owner, staff, helper, server, game, games, world, map, lobby, rank, vip, shop, store, money, price, free
+cheap, expensive, sale, deal, item, items, stuff, thing, things, way, place, home, house, base, room, door, wall
+lag, laggy, ping, fps, bug, glitch, crash, crashed, error, fix, fixed, update, version, mods, plugin, plugins
+lol, lmao, omg, xd, gg, wp, ez, gl, hf, afk, brb, idk, idc, imo, btw, tbh, irl, ikr, np, nvm, rn, ty, thx, pls, plz
+sorry, oops, ah, oh, wow, hmm, huh, yay, haha, hehe, nice, poggers, pog, epic, legend, legendary, op, nerf, buff
+fun, funny, boring, happy, sad, angry, tired, hungry, sick, ready, busy, done, finished, wait, sec, moment
+
+# --- Minecraft (EN)
+block, blocks, stone, cobblestone, dirt, grass, sand, gravel, wood, log, logs, plank, planks, leaves, tree, sapling
+seed, seeds, wheat, carrot, potato, beetroot, sugar, cane, pumpkin, melon, diamond, diamonds, iron, gold, coal
+copper, emerald, emeralds, redstone, lapis, obsidian, netherite, amethyst, quartz, ore, ores, ingot, ingots
+pickaxe, pick, axe, shovel, hoe, sword, bow, arrow, arrows, crossbow, trident, shield, armor, armour, helmet
+chestplate, leggings, boots, elytra, enchant, enchanted, enchantment, enchanting, anvil, furnace, smoker
+crafting, table, chest, chests, barrel, hopper, rail, rails, minecart, boat, bed, beds, torch, torches, lantern
+trapdoor, piston, sticky, observer, repeater, comparator, dispenser, dropper, lever, button, pressure, plate
+potion, potions, bottle, bucket, water, lava, fire, ice, snow, rain, storm, thunder, cave, caves, mountain, sea
+ocean, river, lake, forest, desert, plains, swamp, island, jungle, taiga, badlands, mushroom, village, villager
+villagers, zombie, zombies, skeleton, skeletons, spider, creeper, creepers, enderman, endermen, dragon, wither
+blaze, ghast, slime, witch, pillager, raid, golem, wolf, cat, horse, sheep, chicken, cow, pig, parrot, frog
+fish, dolphin, turtle, bee, bees, fox, panda, llama, camel, axolotl, warden, sniffer, nether, end, overworld
+portal, stronghold, fortress, bastion, temple, ship, shipwreck, treasure, compass, clock, totem, beacon, conduit
+shulker, shulkers, ender, pearl, pearls, eye, xp, exp, experience, level, levels, mending, unbreaking, sharpness
+efficiency, fortune, silk, touch, protection, looting, smite, sweeping, infinity, power, punch, flame, thorns
+survival, skyblock, bedwars, skywars, factions, prison, creative, hardcore, pvp, pve, kitpvp, duel, duels, uhc
+parkour, minigame, minigames, event, season, reset, kit, kits, crate, crates, key, keys, vote, voted, quest

@@ -1,0 +1,143 @@
+# ==================================================================================================
+#  JChatControl - Yasaklı kelimeler / Blocked words
+# --------------------------------------------------------------------------------------------------
+#  Kategori adı config.yml > categories ile aynı olmalı.
+#    exact    : kelimenin TAMAMI eşleşmeli          ("amk" -> "amk", ama "kamk" değil)
+#    prefix   : kelime bununla BAŞLAMALI (Türkçe ek) ("salak" -> "salaksın", "salaklar")
+#    contains : kelimenin İÇİNDE geçmesi yeterli     ("orospu" -> "orospuçocuğu")
+#
+#  Tüm kelimeler mesajla aynı şekilde normalize edilir: küçük harf, ı/ş/ğ/ü/ö/ç -> i/s/g/u/o/c,
+#  leetspeak (4->a 3->e 1->i 0->o 5->s), tekrar eden harfler tekleşir ("yarrak" -> "yarak").
+#  Bu yüzden her varyasyonu yazmana gerek yok.
+#
+#  DİKKAT: Türkçe karakterler katlandığı için "sık" == "sik", "piç" == "pic" (picture), "göt" == "got" olur.
+#  Bu tür belirsiz kelimeleri buraya DEĞİL, suspicious-words.txt dosyasına yaz: o zaman yapay zeka bağlama bakar.
+#  contains kullanırken kısa kökler başka kelimelerin içinde geçebilir ("yarak" -> "kayarak"!). Emin değilsen prefix/exact.
+#
+#  AI'nın öğrendiği kelimeler learned/blocked-words.txt dosyasına yazılır (bu dosya değiştirilmez).
+# ==================================================================================================
+
+profanity:
+  exact:
+    - amk
+    - aq
+    - amq
+    - amg
+    - amcık
+    - sikik
+    - sikim
+    - sikimi
+    - sikimin
+    - sikimle
+    - sikişmek
+    - orsp
+    - orspu
+    - pust
+    - yarram
+    - taşak
+    - taşaklar
+    - ananısikim
+    - fuck
+    - fck
+    - fuk
+    - shit
+    - bitch
+    - dick
+    - cock
+    - pussy
+    - twat
+    - cunt
+  prefix:
+    - amına
+    - amınakoy
+    - amını
+    - amcıkl
+    - siker
+    - sikey
+    - sikiyim
+    - sikmek
+    - sikişelim
+    - yarak
+    - yarağ
+    - yavşak
+    - gavat
+    - ibne
+    - kaltak
+    - fahişe
+    - sürtük
+    - puştluk
+    - götlek
+    - götoş
+    - kerhane
+    - pussies
+    - bastard
+    - wanker
+    - fucker
+    - bitches
+    - cunts
+  contains:
+    - orospu
+    - oruspu
+    - orosbu
+    - siktir
+    - sikerim
+    - sikeyim
+    - amcık
+    - pezevenk
+    - kahpe
+    - dalyarak
+    - götveren
+    - fuck
+    - asshole
+    - bullshit
+
+insult:
+  exact:
+    - salak
+    - aptal
+    - idiot
+    - retard
+    - moron
+  prefix:
+    - gerizekal
+    - salaks
+    - salakl
+    - aptals
+    - aptall
+    - beyinsiz
+    - şerefsiz
+    - haysiyetsiz
+    - namussuz
+    - dangalak
+    - embesil
+    - ahmak
+    - angut
+    - aşağılık
+    - retarded
+    - dumbass
+
+racism:
+  exact:
+    - nigger
+    - niggers
+    - nigga
+    - niggas
+    - chink
+    - kike
+  prefix:
+    - zenciler
+    - pisarap
+    - piskürt
+    - pisermeni
+
+sexual:
+  prefix:
+    - porn
+    - xvideos
+    - xnxx
+    - brazzers
+    - hentai
+
+threats:
+  exact:
+    - kys

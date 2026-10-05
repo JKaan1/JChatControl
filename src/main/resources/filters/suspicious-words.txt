@@ -1,0 +1,41 @@
+# ==================================================================================================
+#  JChatControl - Şüpheli kelimeler / Suspicious words
+# --------------------------------------------------------------------------------------------------
+#  Bu kelimeler tek başına yasak DEĞİLDİR ama bağlama göre sorun olabilir (din, dil, ırk, siyaset,
+#  belirsiz argo). İçinde bu kelimelerden biri geçen mesaj, izinli kelimelerden oluşsa bile
+#  HER ZAMAN yapay zekaya sorulur (sonuç önbelleğe alınır, aynı mesaj tekrar sorulmaz).
+#
+#  Normal satır : kelime BAŞI eşleşir ("allah" -> "allahım", "allahını")
+#  =kelime      : sadece kelimenin TAMAMI eşleşir ("=din" -> "din", ama "dinle" değil)
+#  Virgülle ayırarak aynı satıra birden çok kelime yazabilirsin.
+# ==================================================================================================
+
+# --- Belirsiz argo (Türkçe karakter katlaması yüzünden normal kelimelerle çakışanlar)
+=sik, =sikis, sikiyor, siktim, siktin, sikti, =sg, =mk, =oç, =piç, piçlik, =mal, =gotu, gotun, =am, amin, =ami
+=yarram, anan, bacın, avradını, sülaleni, kaşar, kezban, =dürzü, =hıyar, =öküz, =maymun, hayvanoğlu
+köpeksin, =gerzek, =ezik, =çomar, =kıro, =zibidi, =hödük, =yobaz
+
+# --- Din / Religion
+allah, =tanrı, tanrını, peygamber, muhammed, =hz, =isa, =musa, kuran, incil, tevrat, islam, müslüman
+hristiyan, hıristiyan, yahudi, ateist, deist, agnostik, =din, =dini, =dinin, dinini, dinine, dinsiz, =cami
+camii, kilise, sinagog, namaz, =oruç, alevi, sünni, =şii, vahhabi, şeriat, cihat, cihad, mezhep, tarikat
+kafir, =gavur, gâvur, mürtet, imansız, ezan, =hacı, =imam, =papaz, =haham, =şeyh, şeytan
+=god, gods, jesus, =christ, christian, bible, quran, koran, muslim, =jew, =jews, jewish, judaism, atheist
+religion, church, mosque, =pope, =buddha, hindu
+
+# --- Siyaset / Politics
+akp, chp, mhp, hdp, =dem, =iyip, =bbp, erdoğan, =tayyip, =rte, kılıçdaroğlu, bahçeli, imamoğlu, akşener
+davutoğlu, babacan, demirtaş, öcalan, =apo, pkk, ypg, pyd, fetö, fetullah, işid, =isis, =deaş, hamas, taliban
+=terör, terörist, =darbe, =seçim, seçimler, iktidar, muhalefet, hükümet, cumhurbaşkanı, başbakan, milletvekili
+meclis, tbmm, anayasa, referandum, atatürk, =ata, kemalist, ülkücü, bozkurt, =turan, =vatan, =hain, vatanhain
+şehit, kürdistan, kurdistan, ermenistan, israil, israel, filistin, palestine, =gazze, =gaza, siyonist
+zionist, komünist, communist, faşist, fascist, nazi, =hitler, stalin, =putin, =trump, =biden, =obama
+zelensky, solcu, sağcı, liberal, muhafazakar, laik, politika, politics, election
+
+# --- Dil / Irk / Ethnicity / Language
+kürtçe, kürtler, arap, suriyeli, ermeni, =rum, rumca, yunan, gürcü, =laz, lazca, zaza, çerkez, çingene
+=zenci, =siyahi, afrikalı, =türk, =türkler, =türkçe, =ırk, ırkçı, =soysuz, etnik, azınlık, göçmen, mülteci
+=negro, racist, racism, =slave, =köle, ethnic, immigrant, refugee
+
+# --- Cinsellik / Sexual (bağlama bağlı)
+seks, =sex, sexy, seviş, =çıplak, nude, nudes, memeler, =boobs, =ass
