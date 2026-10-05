@@ -68,10 +68,24 @@ public final class MuteManager {
         y.save(file);
     }
 
-    /** @param durationMs 0 = permanent */
-    public void mute(UUID uuid, String name, long durationMs, String reason) {
-        mutes.put(uuid, new Mute(name, durationMs <= 0 ? 0 : System.currentTimeMillis() + durationMs, reason));
+    /**
+     * Mutes a player. An existing longer mute is kept (automatic commands must not shorten a mute:
+     * e.g. a 30m racism mute followed by a 5m threshold mute). Use {@link #unmute} first to shorten.
+     *
+     * @param durationMs 0 = permanent
+     * @return the mute that is active afterwards
+     */
+    public Mute mute(UUID uuid, String name, long durationMs, String reason) {
+        Mute fresh = new Mute(name, durationMs <= 0 ? 0 : System.currentTimeMillis() + durationMs, reason);
+        Mute result = mutes.merge(uuid, fresh, (old, neu) -> {
+            if (old.expired()) {
+                return neu;
+            }
+            boolean oldLonger = old.until() == 0 || (neu.until() != 0 && old.until() >= neu.until());
+            return oldLonger ? old : neu;
+        });
         dirty = true;
+        return result;
     }
 
     public boolean unmute(UUID uuid) {

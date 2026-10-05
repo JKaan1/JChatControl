@@ -445,11 +445,57 @@ notify:
   staff: true      # jchatcontrol.notify yetkisi olanlara bildirim
   console: true
 
+# Her ihlalde, ihlali YAKALAYAN AŞAMAYA göre konsoldan çalışan komutlar (puan eşiklerinden bağımsız).
+#   word-list : yasaklı kelime listesi yakaladı (blocked-words.yml / learned)
+#   regex     : patterns.yml içindeki bir desen yakaladı
+#   ai        : yapay zeka karar verdi
+#   cache     : daha önce yapay zekanın karar verdiği aynı mesaj (yazılmazsa "ai" komutları kullanılır)
+# Önce "categories.<kategori>" içine bakılır, orada o aşama yazılmamışsa "default" kullanılır.
+# Boş liste [] = o durumda komut çalıştırma.
+# Yer tutucular: {player} {uuid} {category} {category_id} {source} {words} {message} {points} {context}
+# Dahili susturma: jcc mute <oyuncu> <süre> [sebep]   (süre: 30s 10m 2h 1d perm)
+# Test: /chattest <mesaj> veya /jcc test <mesaj> hangi komutların çalışacağını gösterir (çalıştırmaz).
+violation-commands:
+  enabled: true
+  default:
+    word-list: []
+    regex: []
+    ai: []
+  categories:
+    profanity:
+      word-list:
+        - 'jcc mute {player} 2m Küfür (kelime filtresi)'
+      regex:
+        - 'jcc mute {player} 2m Küfür (kalıp)'
+      ai:
+        - 'jcc mute {player} 5m Küfür (yapay zeka)'
+    insult:
+      word-list:
+        - 'jcc mute {player} 2m Hakaret'
+      regex:
+        - 'jcc mute {player} 2m Hakaret'
+      ai:
+        - 'jcc mute {player} 5m Hakaret (yapay zeka)'
+    racism:
+      word-list:
+        - 'jcc mute {player} 30m Irkçılık'
+      regex:
+        - 'jcc mute {player} 30m Irkçılık'
+      ai:
+        - 'jcc mute {player} 15m Irkçılık (yapay zeka)'
+    advertising:
+      word-list: []
+      regex:
+        - 'jcc mute {player} 1h Reklam'
+      ai:
+        - 'jcc mute {player} 10m Reklam (yapay zeka)'
+
 punishments:
   enabled: true
   # İhlal puanları bu kadar dakika sonra silinir
   decay-minutes: 30
-  # Puan eşiği: konsoldan çalıştırılacak komutlar. {player} {uuid} {points} {category}
+  # Puan eşiği: konsoldan çalıştırılacak komutlar (violation-commands'tan SONRA çalışır).
+  # Yer tutucular violation-commands ile aynı.
   # Dahili susturma: jcc mute <oyuncu> <süre> [sebep]  (başka bir ceza plugini de kullanabilirsin)
   thresholds:
     3:

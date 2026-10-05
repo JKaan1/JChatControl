@@ -6,9 +6,13 @@ import dev.jkaanof.jchatcontrol.core.FilterEngine;
 import dev.jkaanof.jchatcontrol.core.TextNormalizer;
 import dev.jkaanof.jchatcontrol.core.Verdict;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 /** Applies verdicts: cancel / censor / warn, notifies staff, logs and adds violation points. */
 public final class Moderator {
@@ -80,7 +84,7 @@ public final class Moderator {
         int points = engine.pointsFor(v);
         String category = displayName(v.primaryCategory());
         String detail = v.detail() == null ? "" : v.detail();
-        String source = v.source().name().toLowerCase(java.util.Locale.ROOT);
+        String source = v.source().name().toLowerCase(Locale.ROOT);
 
         plugin.violationLog().log(player.getName(), context, v.primaryCategory(), source, detail, message);
 
@@ -89,7 +93,7 @@ public final class Moderator {
             if (s.notifyStaff) {
                 String alert = plugin.lang().get("staff-alert", "player", player.getName(), "category", category,
                         "message", message, "source", source, "detail", detail, "action",
-                        action.name().toLowerCase(java.util.Locale.ROOT), "context", context);
+                        action.name().toLowerCase(Locale.ROOT), "context", context);
                 for (Player staff : Bukkit.getOnlinePlayers()) {
                     if (staff.hasPermission("jchatcontrol.notify")) {
                         staff.sendMessage(alert);
@@ -99,21 +103,71 @@ public final class Moderator {
                     Bukkit.getConsoleSender().sendMessage(alert);
                 }
             }
+            int total = plugin.violations().points(player.getUniqueId());
+            List<String> thresholdCommands = List.of();
             if (points > 0 && s.punishmentsEnabled) {
-                List<String> commands = plugin.violations().add(player.getUniqueId(), points);
-                int total = plugin.violations().points(player.getUniqueId());
-                for (String cmd : commands) {
-                    String c = cmd.replace("{player}", player.getName())
-                            .replace("{uuid}", player.getUniqueId().toString())
-                            .replace("{points}", Integer.toString(total))
-                            .replace("{category}", category);
-                    if (c.startsWith("/")) {
-                        c = c.substring(1);
-                    }
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
-                }
+                thresholdCommands = plugin.violations().add(player.getUniqueId(), points);
+                total = plugin.violations().points(player.getUniqueId());
+            }
+            // 1) commands for this detection source (word list / regex / AI)
+            for (String cmd : s.violationCommands.resolve(v)) {
+                dispatch(cmd, player.getName(), player.getUniqueId().toString(), v, message, context, total);
+            }
+            // 2) commands for crossed violation point thresholds
+            for (String cmd : thresholdCommands) {
+                dispatch(cmd, player.getName(), player.getUniqueId().toString(), v, message, context, total);
             }
         });
+    }
+
+    /**
+     * Commands a verdict would run right now for this player (dry run for /jcc test): source commands plus
+     * threshold commands that the added points would cross.
+     */
+    public List<String> plannedCommands(String playerName, UUID uuid, Verdict v, String message, String context) {
+        List<String> out = new ArrayList<>();
+        if (!v.flagged() || v.source() == Verdict.Source.FALLBACK) {
+            return out;
+        }
+        JChatControl.Settings s = plugin.settings();
+        int points = plugin.engine().pointsFor(v);
+        int current = uuid == null ? 0 : plugin.violations().points(uuid);
+        List<String> threshold = s.punishmentsEnabled && points > 0
+                ? plugin.violations().crossed(current, current + points) : List.of();
+        int total = s.punishmentsEnabled ? current + points : current;
+        String id = uuid == null ? "" : uuid.toString();
+        for (String cmd : s.violationCommands.resolve(v)) {
+            out.add(fill(cmd, playerName, id, v, message, context, total));
+        }
+        for (String cmd : threshold) {
+            out.add(fill(cmd, playerName, id, v, message, context, total));
+        }
+        return out;
+    }
+
+    private void dispatch(String cmd, String player, String uuid, Verdict v, String message, String context, int points) {
+        String c = fill(cmd, player, uuid, v, message, context, points);
+        if (!c.isBlank()) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
+        }
+    }
+
+    /**
+     * Placeholders: {player} {uuid} {category} {category_id} {source} {words} {message} {points} {context}
+     */
+    private String fill(String cmd, String player, String uuid, Verdict v, String message, String context, int points) {
+        String sourceKey = ViolationCommands.Kind.of(v.source()) == null ? v.source().name().toLowerCase(Locale.ROOT)
+                : ViolationCommands.Kind.of(v.source()).key;
+        String c = cmd.replace("{player}", player)
+                .replace("{uuid}", uuid)
+                .replace("{category}", ChatColor.stripColor(displayName(v.primaryCategory())))
+                .replace("{category_id}", v.primaryCategory())
+                .replace("{source}", sourceKey)
+                .replace("{words}", String.join(", ", v.words()))
+                .replace("{message}", message.replace('\n', ' '))
+                .replace("{points}", Integer.toString(points))
+                .replace("{context}", context);
+        return c.startsWith("/") ? c.substring(1) : c;
     }
 
     public String displayName(String categoryId) {

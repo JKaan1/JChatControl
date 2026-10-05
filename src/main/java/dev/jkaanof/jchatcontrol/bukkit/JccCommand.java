@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 /** /jchatcontrol (aliases: /jcc, /chatcontrol) */
 public final class JccCommand implements TabExecutor {
 
-    private static final List<String> SUBS = List.of("help", "reload", "stats", "test", "allow", "unallow", "block",
+    private static final List<String> SUBS = List.of("help", "reload", "stats", "test", "simulate", "allow", "unallow", "block",
             "unblock", "learn", "cache", "ai", "mute", "unmute", "violations", "save");
 
     private final JChatControl plugin;
@@ -56,12 +56,18 @@ public final class JccCommand implements TabExecutor {
                 lang.send(sender, "saved");
             }
             case "stats" -> stats(sender, engine);
-            case "test" -> {
-                if (args.length < 2) {
-                    lang.send(sender, "usage", "usage", "/jcc test <message>");
+            case "test" -> testCommand(sender, Arrays.copyOfRange(args, 1, args.length), "/jcc test");
+            case "simulate" -> {
+                if (args.length < 3) {
+                    lang.send(sender, "usage", "usage", "/jcc simulate <player> <message>");
                     return true;
                 }
-                test(sender, engine, String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+                Player target = Bukkit.getPlayerExact(args[1]);
+                if (target == null) {
+                    lang.send(sender, "player-not-found", "player", args[1]);
+                    return true;
+                }
+                simulate(sender, target, String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
             }
             case "allow", "unallow" -> {
                 if (args.length < 2) {
@@ -174,10 +180,26 @@ public final class JccCommand implements TabExecutor {
         }
     }
 
-    private void test(CommandSender sender, FilterEngine engine, String message) {
+    /**
+     * /jcc test [-l] <message>  and  /chattest [-l] <message>
+     * -l = local filters only (word lists + regex), the AI is not asked.
+     */
+    void testCommand(CommandSender sender, String[] args, String usage) {
+        boolean localOnly = args.length > 0 && (args[0].equalsIgnoreCase("-l") || args[0].equalsIgnoreCase("-local"));
+        String[] rest = localOnly ? Arrays.copyOfRange(args, 1, args.length) : args;
+        if (rest.length == 0) {
+            plugin.lang().send(sender, "usage", "usage", usage + " [-l] <message>");
+            return;
+        }
+        test(sender, plugin.engine(), String.join(" ", rest), !localOnly);
+    }
+
+    private void test(CommandSender sender, FilterEngine engine, String message, boolean useAi) {
         Lang lang = plugin.lang();
-        UUID id = sender instanceof Player p ? p.getUniqueId() : null;
-        FilterEngine.Evaluation ev = engine.evaluate(ChatColor.stripColor(message), id, true);
+        Player self = sender instanceof Player p ? p : null;
+        UUID id = self == null ? null : self.getUniqueId();
+        // tests never count against the player's AI limit
+        FilterEngine.Evaluation ev = engine.evaluate(ChatColor.stripColor(message), null, useAi);
         lang.send(sender, "test-normalized", "text", ev.normalized().text());
         CompletableFuture<Verdict> f = ev.isFinal() ? CompletableFuture.completedFuture(ev.verdict()) : ev.pending();
         if (!ev.isFinal()) {
@@ -193,6 +215,37 @@ public final class JccCommand implements TabExecutor {
                     "detail", v.detail() == null ? "-" : v.detail(),
                     "action", v.flagged() ? engine.actionFor(v, dev.jkaanof.jchatcontrol.core.Action.BLOCK).name() : "-",
                     "censored", censored == null ? "-" : censored);
+            if (v.flagged()) {
+                List<String> commands = plugin.moderator().plannedCommands(sender.getName(), id, v, message, "test");
+                if (commands.isEmpty()) {
+                    lang.send(sender, "test-no-commands");
+                } else {
+                    lang.send(sender, "test-commands-header", "count", commands.size());
+                    commands.forEach(c -> lang.send(sender, "test-command-line", "command", c));
+                }
+            }
+        }));
+    }
+
+    /** Runs the full chat moderation for a player as if they wrote the message (commands really run). */
+    private void simulate(CommandSender sender, Player target, String message) {
+        Lang lang = plugin.lang();
+        FilterEngine engine = plugin.engine();
+        FilterEngine.Evaluation ev = engine.evaluate(ChatColor.stripColor(message), null, true);
+        CompletableFuture<Verdict> f = ev.isFinal() ? CompletableFuture.completedFuture(ev.verdict()) : ev.pending();
+        if (!ev.isFinal()) {
+            lang.send(sender, "test-waiting");
+        }
+        f.thenAccept(v -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!target.isOnline()) {
+                return;
+            }
+            Moderator.Decision d = plugin.moderator().decide(target, v, ev.normalized(), "simulate");
+            String result = !v.flagged() ? "clean" : d.cancel() ? "blocked" : d.replacement() != null ? "censored: "
+                    + d.replacement() : "sent";
+            lang.send(sender, "simulate-result", "player", target.getName(), "source",
+                    v.source().name().toLowerCase(Locale.ROOT), "categories",
+                    v.categories().isEmpty() ? "-" : String.join(", ", v.categories()), "result", result);
         }));
     }
 
@@ -277,8 +330,9 @@ public final class JccCommand implements TabExecutor {
         String reason = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length))
                 : lang.get("default-mute-reason");
         String name = target.getName() == null ? args[1] : target.getName();
-        plugin.mutes().mute(target.getUniqueId(), name, duration, reason);
-        String time = duration == 0 ? "∞" : MuteManager.format(duration);
+        MuteManager.Mute active = plugin.mutes().mute(target.getUniqueId(), name, duration, reason);
+        reason = active.reason();
+        String time = active.until() == 0 ? "∞" : MuteManager.format(active.until() - System.currentTimeMillis());
         lang.send(sender, "muted-player", "player", name, "time", time, "reason", reason);
         Player online = target.getPlayer();
         if (online != null) {
@@ -309,7 +363,8 @@ public final class JccCommand implements TabExecutor {
                 case "learn" -> options.addAll(List.of("list", "approve", "deny", "approveall"));
                 case "cache" -> options.add("clear");
                 case "ai" -> options.addAll(List.of("status", "on", "off"));
-                case "mute", "unmute", "violations" -> Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
+                case "mute", "unmute", "violations", "simulate" -> Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
+                case "test" -> options.add("-l");
                 default -> {
                 }
             }

@@ -42,7 +42,15 @@ public final class ViolationManager {
             d.addLast(new Entry(System.currentTimeMillis(), points));
             after = before + points;
         }
+        return crossed(before, after);
+    }
+
+    /** Commands of every threshold in (before, after]. */
+    public List<String> crossed(int before, int after) {
         List<String> commands = new ArrayList<>();
+        if (after <= before) {
+            return commands;
+        }
         for (Map.Entry<Integer, List<String>> e : thresholds.subMap(before, false, after, true).entrySet()) {
             commands.addAll(e.getValue());
         }

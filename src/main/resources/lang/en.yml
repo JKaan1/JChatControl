@@ -50,12 +50,19 @@ test-waiting: '{prefix}&7Asking the AI...'
 test-clean: '{prefix}&aCLEAN &8| &7stage: &f{source} &8| &7detail: &f{detail}'
 test-flagged: '{prefix}&cVIOLATION &8| &7stage: &f{source} &8| &7category: &f{categories} &8| &7words: &f{words} &8| &7confidence: &f{confidence} &8| &7action: &f{action} &8| &7censored: &f{censored} &8| &7detail: &f{detail}'
 
+test-no-commands: '{prefix}&7No commands would run for this violation.'
+test-commands-header: '{prefix}&7Commands that would run on a real violation (&f{count}&7):'
+test-command-line: '&8 » &e/{command}'
+simulate-result: '{prefix}&7Simulation &f{player}&7: result &f{result} &8| &7stage: &f{source} &8| &7category: &f{categories}'
+
 stats-header: '{prefix}&bStatistics'
 stats-line: '&8 » &7{key}: &f{value}'
 
 help:
   - '&8&m------&r &bJChatControl &7by JKaanOF &8&m------'
-  - '&b/jcc test <message> &8- &7Test a message (shows which stage decided)'
+  - '&b/jcc test [-l] <message> &8- &7Test a message: stage, category, commands that would run (-l: local only)'
+  - '&b/chattest [-l] <message> &8- &7Short test command (permission: jchatcontrol.test)'
+  - '&b/jcc simulate <player> <message> &8- &7Apply as if the player wrote it (commands REALLY run)'
   - '&b/jcc stats &8- &7Statistics, API savings, provider status'
   - '&b/jcc allow|unallow <word> &8- &7Add/remove an allowed word'
   - '&b/jcc block <word> [category] &8- &7Block a word'

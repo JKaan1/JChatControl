@@ -97,10 +97,37 @@ Yerel filtreler her modda anında çalışır. Özel mesajlar (`/msg`, `/r` ...)
 Her kategori için `action` (`BLOCK`, `CENSOR`, `WARN`, `LOG`), ihlal puanı ve yapay zeka açıklaması ayarlanır.
 Yeni kategori ekleyebilirsin. Puan eşiklerinde istediğin komut çalışır (dahili `jcc mute` veya başka ceza pluginleri).
 
+## İhlal komutları (kelime listesi / regex / AI için ayrı)
+Her ihlalde, ihlali **hangi aşamanın** yakaladığına göre farklı komut çalıştırılabilir (susturma, uyarı, başka bir ceza plugini ...):
+```yaml
+violation-commands:
+  enabled: true
+  default:                # kategoride o aşama yazılmamışsa kullanılır
+    word-list: []
+    regex: []
+    ai: []
+  categories:
+    profanity:
+      word-list: ['jcc mute {player} 2m Küfür (kelime filtresi)']
+      regex:     ['jcc mute {player} 2m Küfür (kalıp)']
+      ai:        ['jcc mute {player} 5m Küfür (yapay zeka)']
+```
+`cache` (yapay zekanın daha önce karar verdiği aynı mesaj) ayrıca yazılmazsa `ai` komutları kullanılır.
+Yer tutucular: `{player} {uuid} {category} {category_id} {source} {words} {message} {points} {context}`.
+Bu komutlar puan eşiği komutlarından **önce** çalışır. Dahili susturma, oyuncunun mevcut daha uzun susturmasını kısaltmaz.
+
+## Test
+- `/chattest <mesaj>` (kısayol: `/ctest`, yetki `jchatcontrol.test`) veya `/jcc test <mesaj>` – mesajın hangi aşamada
+  yakalandığını, kategoriyi, sansürlü halini ve **gerçek ihlalde çalışacak komutları** gösterir (komutları çalıştırmaz).
+- `-l` ekle (`/chattest -l <mesaj>`) – sadece yerel filtreler, yapay zekaya sorulmaz.
+- `/jcc simulate <oyuncu> <mesaj>` – oyuncu yazmış gibi her şeyi uygular (engelleme, bildirim, puan, **komutlar gerçekten çalışır**).
+
 ## Komutlar (`/jchatcontrol`, `/jcc`, `/chatcontrol`)
 | Komut | Açıklama |
 |-------|----------|
-| `/jcc test <mesaj>` | Mesajı test et, hangi aşamada karar verildiğini göster |
+| `/jcc test [-l] <mesaj>` | Mesajı test et: aşama, kategori, çalışacak komutlar |
+| `/chattest [-l] <mesaj>` | Kısa test komutu (`jchatcontrol.test`) |
+| `/jcc simulate <oyuncu> <mesaj>` | Oyuncu yazmış gibi uygula (komutlar çalışır) |
 | `/jcc stats` | İstatistikler, API tasarrufu, sağlayıcı durumu |
 | `/jcc allow / unallow <kelime>` | İzinli kelime ekle / çıkar |
 | `/jcc block <kelime> [kategori]` / `unblock <kelime>` | Yasaklı kelime ekle / çıkar |
@@ -115,6 +142,7 @@ Yeni kategori ekleyebilirsin. Puan eşiklerinde istediğin komut çalışır (da
 | Yetki | Varsayılan | Açıklama |
 |-------|-----------|----------|
 | `jchatcontrol.admin` | op | Komutlar |
+| `jchatcontrol.test` | op | `/chattest` |
 | `jchatcontrol.notify` | op | Yetkili bildirimleri |
 | `jchatcontrol.bypass` | – | Hiç kontrol edilmez |
 | `jchatcontrol.bypass.ai` | – | Sadece yerel filtreler |

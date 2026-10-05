@@ -50,12 +50,19 @@ test-waiting: '{prefix}&7Yapay zekaya soruluyor...'
 test-clean: '{prefix}&aTEMİZ &8| &7aşama: &f{source} &8| &7detay: &f{detail}'
 test-flagged: '{prefix}&cİHLAL &8| &7aşama: &f{source} &8| &7kategori: &f{categories} &8| &7kelimeler: &f{words} &8| &7güven: &f{confidence} &8| &7işlem: &f{action} &8| &7sansürlü: &f{censored} &8| &7detay: &f{detail}'
 
+test-no-commands: '{prefix}&7Bu ihlalde çalışacak komut yok.'
+test-commands-header: '{prefix}&7Gerçek bir ihlalde çalışacak komutlar (&f{count}&7):'
+test-command-line: '&8 » &e/{command}'
+simulate-result: '{prefix}&7Simülasyon &f{player}&7: sonuç &f{result} &8| &7aşama: &f{source} &8| &7kategori: &f{categories}'
+
 stats-header: '{prefix}&bİstatistikler'
 stats-line: '&8 » &7{key}: &f{value}'
 
 help:
   - '&8&m------&r &bJChatControl &7by JKaanOF &8&m------'
-  - '&b/jcc test <mesaj> &8- &7Mesajı test et (hangi aşamada karar verildiğini gösterir)'
+  - '&b/jcc test [-l] <mesaj> &8- &7Mesajı test et: aşama, kategori, çalışacak komutlar (-l: sadece yerel)'
+  - '&b/chattest [-l] <mesaj> &8- &7Kısa test komutu (yetki: jchatcontrol.test)'
+  - '&b/jcc simulate <oyuncu> <mesaj> &8- &7Oyuncu yazmış gibi uygula (komutlar GERÇEKTEN çalışır)'
   - '&b/jcc stats &8- &7İstatistikler, API tasarrufu, sağlayıcı durumu'
   - '&b/jcc allow|unallow <kelime> &8- &7İzinli kelime ekle/çıkar'
   - '&b/jcc block <kelime> [kategori] &8- &7Yasaklı kelime ekle'

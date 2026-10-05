@@ -78,6 +78,7 @@ public final class JChatControl extends JavaPlugin {
         public Locale capsLocale = Locale.ROOT;
         public int maxRepeatedChars = 4;
         public long autosaveSeconds = 300;
+        public ViolationCommands violationCommands = ViolationCommands.disabled();
     }
 
     private static final String[] DEFAULT_FILES = {
@@ -125,11 +126,17 @@ public final class JChatControl extends JavaPlugin {
         }
 
         getServer().getPluginManager().registerEvents(new ContentListener(this), this);
+        JccCommand jcc = new JccCommand(this);
         PluginCommand cmd = getCommand("jchatcontrol");
         if (cmd != null) {
-            JccCommand executor = new JccCommand(this);
-            cmd.setExecutor(executor);
-            cmd.setTabCompleter(executor);
+            cmd.setExecutor(jcc);
+            cmd.setTabCompleter(jcc);
+        }
+        PluginCommand test = getCommand("chattest");
+        if (test != null) {
+            ChatTestCommand executor = new ChatTestCommand(this, jcc);
+            test.setExecutor(executor);
+            test.setTabCompleter(executor);
         }
         getLogger().info("JChatControl " + getDescription().getVersion() + " by JKaanOF enabled.");
     }
@@ -318,6 +325,7 @@ public final class JChatControl extends JavaPlugin {
         s.capsLocale = capsLocale.isBlank() ? Locale.ROOT : Locale.forLanguageTag(capsLocale);
         s.maxRepeatedChars = cfg.getInt("flood.max-repeated-chars", 4);
         s.autosaveSeconds = cfg.getLong("autosave-seconds", 300);
+        s.violationCommands = new ViolationCommands(cfg.getSection("violation-commands"));
         return s;
     }
 

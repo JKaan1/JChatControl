@@ -12,6 +12,10 @@ commands:
     description: JChatControl admin command
     usage: /<command> help
     aliases: [jcc, chatcontrol]
+  chattest:
+    description: Test a message against the chat filter (local filters + AI)
+    usage: /<command> [-l] <message>
+    aliases: [ctest, jcctest]
 
 permissions:
   jchatcontrol.*:
@@ -19,9 +23,15 @@ permissions:
     default: op
     children:
       jchatcontrol.admin: true
+      jchatcontrol.test: true
       jchatcontrol.notify: true
   jchatcontrol.admin:
     description: Use /jcc commands
+    default: op
+    children:
+      jchatcontrol.test: true
+  jchatcontrol.test:
+    description: Use /chattest to test messages against the filter
     default: op
   jchatcontrol.notify:
     description: Receive staff alerts about violations
