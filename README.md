@@ -16,6 +16,7 @@ Asıl hedef: **API kullanımını en aza indirmek.** Mesajların büyük çoğun
 
 | # | Aşama | API çağrısı |
 |---|-------|-------------|
+| 0 | **Anti-spam / chat delay** – mesaj arası bekleme, aynı/benzer mesaj tekrarı, kısa sürede çok mesaj (flood). Spam hiçbir filtreye ve yapay zekaya ulaşmaz | yok |
 | 1 | **Normalizasyon** – büyük/küçük harf, `ı ş ğ ü ö ç`, leetspeak (`4→a 3→e $→s`), harf tekrarı (`siiiik`), Kiril benzeri harfler | yok |
 | 2 | **Yasaklı kelimeler** – `exact` / `prefix` (Türkçe ekler) / `contains` (Aho-Corasick, tek geçiş) + aralıklı yazım (`s i k t i r`) | yok |
 | 3 | **Regex desenleri** – reklam, IP, link, kalıplar (`patterns.yml`) | yok |
@@ -97,6 +98,18 @@ Yerel filtreler her modda anında çalışır. Özel mesajlar (`/msg`, `/r` ...)
 Her kategori için `action` (`BLOCK`, `CENSOR`, `WARN`, `LOG`), ihlal puanı ve yapay zeka açıklaması ayarlanır.
 Yeni kategori ekleyebilirsin. Puan eşiklerinde istediğin komut çalışır (dahili `jcc mute` veya başka ceza pluginleri).
 
+## Anti-spam ve chat delay
+```yaml
+anti-spam:
+  chat-delay-ms: 1500            # iki mesaj arası en az bekleme
+  duplicate: {window-seconds: 30, history: 3, similarity: 0.85}
+  burst: {messages: 5, window-seconds: 8}
+  apply-to-commands: true        # /msg, /r ... (ayrı sayaç)
+  punish: {threshold: 5, window-seconds: 60, commands: ['jcc mute {player} 2m Spam']}
+```
+Benzerlik normalize edilmiş metin üzerinden ölçülür: `selam!!`, `SELAAAM` ve `selam` aynı mesaj sayılır.
+Yetkiler: `jchatcontrol.bypass.spam` (anti-spam kapalı), `jchatcontrol.bypass.delay` (sadece bekleme süresi kapalı).
+
 ## İhlal komutları (kelime listesi / regex / AI için ayrı)
 Her ihlalde, ihlali **hangi aşamanın** yakaladığına göre farklı komut çalıştırılabilir (susturma, uyarı, başka bir ceza plugini ...):
 ```yaml
@@ -146,6 +159,8 @@ Bu komutlar puan eşiği komutlarından **önce** çalışır. Dahili susturma, 
 | `jchatcontrol.notify` | op | Yetkili bildirimleri |
 | `jchatcontrol.bypass` | – | Hiç kontrol edilmez |
 | `jchatcontrol.bypass.ai` | – | Sadece yerel filtreler |
+| `jchatcontrol.bypass.spam` | – | Anti-spam uygulanmaz |
+| `jchatcontrol.bypass.delay` | – | Chat delay uygulanmaz |
 
 ## Dosyalar
 ```
@@ -164,6 +179,15 @@ plugins/JChatControl/
 │   └── candidates.tsv
 ├── data/ai-cache.tsv, mutes.yml
 └── logs/violations-YYYY-MM-DD.log
+```
+
+## Gerçek bir modelle test (sunucu gerekmeden)
+Tüm pipeline'ı (yerel filtreler + önbellek + öğrenme + gerçek yapay zeka) örnek Türkçe/İngilizce mesajlarla çalıştırır,
+doğruluk ve API istek sayısını raporlar (`target/live-ai-report.txt`):
+```bash
+JCC_LIVE_API_KEY=sk-or-...  JCC_LIVE_MODEL=meta-llama/llama-3.1-8b-instruct  mvn test -Dtest=LiveAiTest
+# opsiyonel: JCC_LIVE_BASE_URL (varsayılan https://openrouter.ai/api/v1), JCC_LIVE_PARSER (json|guard|yes-no|label),
+#            JCC_LIVE_JSON_FORMAT=false (response_format desteklemeyen modeller), JCC_LIVE_DEBUG=true
 ```
 
 ## Derleme

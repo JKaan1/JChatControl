@@ -139,7 +139,12 @@ public final class FilterEngine {
      * @param allowAi false to only use local stages
      */
     public Evaluation evaluate(String message, UUID player, boolean allowAi) {
-        TextNormalizer.Normalized n = normalizer.normalize(message);
+        return evaluate(normalizer.normalize(message), player, allowAi);
+    }
+
+    /** Same as {@link #evaluate(String, UUID, boolean)} for an already normalized message. */
+    public Evaluation evaluate(TextNormalizer.Normalized n, UUID player, boolean allowAi) {
+        String message = n.raw();
         Verdict local = checkLocal(n);
         if (local != null) {
             stats.record(local);

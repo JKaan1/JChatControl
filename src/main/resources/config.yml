@@ -76,6 +76,37 @@ flood:
   max-repeated-chars: 4  # "selaaaaaaam" -> "selaaaam" (0 = kapalı)
 
 # --------------------------------------------------------------------------------------------------
+#  ANTI-SPAM / CHAT DELAY
+#   Tüm filtrelerden ÖNCE çalışır: spam mesajlar kelime listelerine, önbelleğe ve yapay zekaya HİÇ ulaşmaz.
+#   Yetkiler: jchatcontrol.bypass.spam (anti-spam tamamen kapalı), jchatcontrol.bypass.delay (sadece bekleme süresi)
+# --------------------------------------------------------------------------------------------------
+anti-spam:
+  enabled: true
+  # İki mesaj arası en az bekleme (ms). 0 = kapalı
+  chat-delay-ms: 1500
+  # Aynı / çok benzer mesajı tekrar yazma
+  duplicate:
+    enabled: true
+    window-seconds: 30      # bu süre içindeki mesajlarla karşılaştırılır
+    history: 3              # son kaç mesaja bakılır
+    similarity: 0.85        # 0-1 arası benzerlik (1.0 = sadece birebir aynı). "selam!!" ile "selaaam" zaten aynı sayılır
+    min-length: 6           # bundan kısa mesajlar sadece birebir tekrar için kontrol edilir
+  # Kısa sürede çok mesaj (flood)
+  burst:
+    enabled: true
+    messages: 5             # window-seconds içinde en fazla bu kadar mesaj
+    window-seconds: 8
+  # /msg, /r ... gibi özel mesaj komutlarına da uygula (ayrı sayaç)
+  apply-to-commands: true
+  notify-staff: false
+  # window-seconds içinde threshold kadar spam engeli olursa komutlar çalışır. {player} {uuid} {type} {context}
+  punish:
+    threshold: 5
+    window-seconds: 60
+    commands:
+      - 'jcc mute {player} 2m Spam'
+
+# --------------------------------------------------------------------------------------------------
 #  FİLTRE
 # --------------------------------------------------------------------------------------------------
 filter:

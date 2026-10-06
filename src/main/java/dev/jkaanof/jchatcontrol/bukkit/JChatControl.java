@@ -4,6 +4,7 @@ import dev.jkaanof.jchatcontrol.core.Action;
 import dev.jkaanof.jchatcontrol.core.CategorySettings;
 import dev.jkaanof.jchatcontrol.core.DecisionCache;
 import dev.jkaanof.jchatcontrol.core.FilterEngine;
+import dev.jkaanof.jchatcontrol.core.SpamGuard;
 import dev.jkaanof.jchatcontrol.core.Stats;
 import dev.jkaanof.jchatcontrol.core.TextNormalizer;
 import dev.jkaanof.jchatcontrol.core.ai.AiProvider;
@@ -79,6 +80,9 @@ public final class JChatControl extends JavaPlugin {
         public int maxRepeatedChars = 4;
         public long autosaveSeconds = 300;
         public ViolationCommands violationCommands = ViolationCommands.disabled();
+        public boolean spamOnCommands = true;
+        public boolean spamNotifyStaff = false;
+        public List<String> spamCommands = List.of();
     }
 
     private static final String[] DEFAULT_FILES = {
@@ -91,6 +95,8 @@ public final class JChatControl extends JavaPlugin {
     private volatile Lang lang;
     private volatile ViolationManager violations;
     private volatile ViolationLog violationLog;
+    private volatile SpamGuard chatSpam = new SpamGuard(new SpamGuard.Settings());
+    private volatile SpamGuard commandSpam = new SpamGuard(new SpamGuard.Settings());
     private MuteManager mutes;
     private Moderator moderator;
     private ChatListener chatListener;
@@ -242,6 +248,9 @@ public final class JChatControl extends JavaPlugin {
                 }
             }
 
+            SpamGuard.Settings spam = readSpamSettings(cfg);
+            this.chatSpam = new SpamGuard(spam);
+            this.commandSpam = new SpamGuard(spam);
             this.settings = s;
             this.lang = newLang;
             this.engine = newEngine;
@@ -326,7 +335,27 @@ public final class JChatControl extends JavaPlugin {
         s.maxRepeatedChars = cfg.getInt("flood.max-repeated-chars", 4);
         s.autosaveSeconds = cfg.getLong("autosave-seconds", 300);
         s.violationCommands = new ViolationCommands(cfg.getSection("violation-commands"));
+        s.spamOnCommands = cfg.getBoolean("anti-spam.apply-to-commands", true);
+        s.spamNotifyStaff = cfg.getBoolean("anti-spam.notify-staff", false);
+        s.spamCommands = cfg.getStringList("anti-spam.punish.commands");
         return s;
+    }
+
+    private static SpamGuard.Settings readSpamSettings(Section cfg) {
+        SpamGuard.Settings g = new SpamGuard.Settings();
+        g.enabled = cfg.getBoolean("anti-spam.enabled", true);
+        g.delayMs = cfg.getLong("anti-spam.chat-delay-ms", 1500);
+        g.duplicateEnabled = cfg.getBoolean("anti-spam.duplicate.enabled", true);
+        g.duplicateWindowMs = cfg.getLong("anti-spam.duplicate.window-seconds", 30) * 1000L;
+        g.historySize = cfg.getInt("anti-spam.duplicate.history", 3);
+        g.similarity = cfg.getDouble("anti-spam.duplicate.similarity", 0.85);
+        g.similarityMinLength = cfg.getInt("anti-spam.duplicate.min-length", 6);
+        g.burstEnabled = cfg.getBoolean("anti-spam.burst.enabled", true);
+        g.burstMessages = cfg.getInt("anti-spam.burst.messages", 5);
+        g.burstWindowMs = cfg.getLong("anti-spam.burst.window-seconds", 8) * 1000L;
+        g.punishThreshold = cfg.getInt("anti-spam.punish.threshold", 5);
+        g.punishWindowMs = cfg.getLong("anti-spam.punish.window-seconds", 60) * 1000L;
+        return g;
     }
 
     private FilterEngine buildEngine(Section cfg) throws IOException {
@@ -568,6 +597,14 @@ public final class JChatControl extends JavaPlugin {
 
     public ViolationManager violations() {
         return violations;
+    }
+
+    public SpamGuard chatSpam() {
+        return chatSpam;
+    }
+
+    public SpamGuard commandSpam() {
+        return commandSpam;
     }
 
     public ViolationLog violationLog() {

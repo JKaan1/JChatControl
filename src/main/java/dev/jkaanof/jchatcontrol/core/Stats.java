@@ -15,6 +15,7 @@ public final class Stats {
     public final LongAdder aiErrors = new LongAdder();
     public final LongAdder aiDeduplicated = new LongAdder();
     public final LongAdder rateLimited = new LongAdder();
+    public final LongAdder spamBlocked = new LongAdder();
     public final LongAdder learnedAllowed = new LongAdder();
     public final LongAdder learnedBlocked = new LongAdder();
     public final AtomicLong aiTotalLatencyMs = new AtomicLong();
@@ -60,6 +61,7 @@ public final class Stats {
         aiErrors.reset();
         aiDeduplicated.reset();
         rateLimited.reset();
+        spamBlocked.reset();
         learnedAllowed.reset();
         learnedBlocked.reset();
         aiTotalLatencyMs.set(0);

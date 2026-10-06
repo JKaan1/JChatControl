@@ -1,6 +1,7 @@
 package dev.jkaanof.jchatcontrol.bukkit;
 
 import dev.jkaanof.jchatcontrol.core.FilterEngine;
+import dev.jkaanof.jchatcontrol.core.SpamGuard;
 import dev.jkaanof.jchatcontrol.core.TextNormalizer;
 import dev.jkaanof.jchatcontrol.core.Verdict;
 import org.bukkit.ChatColor;
@@ -73,9 +74,20 @@ public final class ContentListener implements Listener {
         String prefix = raw.substring(0, cut + 1);
         String text = plugin.preprocess(raw.substring(cut + 1));
         String plain = ChatColor.stripColor(text);
+        TextNormalizer.Normalized normalized = plugin.engine().normalizer().normalize(plain);
+
+        if (s.spamOnCommands && !player.hasPermission("jchatcontrol.bypass.spam")) {
+            SpamGuard.Result spam = plugin.commandSpam().check(player.getUniqueId(), normalized.text(),
+                    System.currentTimeMillis(), !player.hasPermission("jchatcontrol.bypass.delay"));
+            if (spam.blocked()) {
+                e.setCancelled(true);
+                plugin.moderator().spamBlocked(player, spam, plain, "command:" + label);
+                return;
+            }
+        }
 
         boolean ai = s.commandsUseAi && !player.hasPermission("jchatcontrol.bypass.ai");
-        FilterEngine.Evaluation ev = plugin.engine().evaluate(plain, player.getUniqueId(), ai);
+        FilterEngine.Evaluation ev = plugin.engine().evaluate(normalized, player.getUniqueId(), ai);
         if (ev.isFinal()) {
             Moderator.Decision d = plugin.moderator().decide(player, ev.verdict(), ev.normalized(), "command:" + label);
             if (d.cancel()) {
@@ -160,6 +172,8 @@ public final class ContentListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent e) {
         plugin.engine().lists().removeRuntimeAllowed(e.getPlayer().getName());
+        plugin.chatSpam().forget(e.getPlayer().getUniqueId());
+        plugin.commandSpam().forget(e.getPlayer().getUniqueId());
         if (plugin.engine().ai() != null) {
             plugin.engine().ai().forgetPlayer(e.getPlayer().getUniqueId());
         }

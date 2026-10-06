@@ -1,6 +1,8 @@
 package dev.jkaanof.jchatcontrol.bukkit;
 
 import dev.jkaanof.jchatcontrol.core.FilterEngine;
+import dev.jkaanof.jchatcontrol.core.SpamGuard;
+import dev.jkaanof.jchatcontrol.core.TextNormalizer;
 import dev.jkaanof.jchatcontrol.core.Verdict;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -67,8 +69,21 @@ public final class ChatListener implements Listener, EventExecutor {
             e.setMessage(message);
         }
         String plain = ChatColor.stripColor(message);
+        TextNormalizer.Normalized normalized = plugin.engine().normalizer().normalize(plain);
+
+        // chat delay + anti-spam first: spam never reaches the filters or the AI
+        if (!player.hasPermission("jchatcontrol.bypass.spam")) {
+            SpamGuard.Result spam = plugin.chatSpam().check(player.getUniqueId(), normalized.text(),
+                    System.currentTimeMillis(), !player.hasPermission("jchatcontrol.bypass.delay"));
+            if (spam.blocked()) {
+                e.setCancelled(true);
+                plugin.moderator().spamBlocked(player, spam, plain, "chat");
+                return;
+            }
+        }
+
         boolean aiAllowed = !player.hasPermission("jchatcontrol.bypass.ai");
-        FilterEngine.Evaluation ev = plugin.engine().evaluate(plain, player.getUniqueId(), aiAllowed);
+        FilterEngine.Evaluation ev = plugin.engine().evaluate(normalized, player.getUniqueId(), aiAllowed);
 
         if (ev.isFinal()) {
             apply(e, player, ev, ev.verdict());

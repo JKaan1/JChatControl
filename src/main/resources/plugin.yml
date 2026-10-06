@@ -39,6 +39,12 @@ permissions:
   jchatcontrol.bypass:
     description: Messages are never checked
     default: false
+  jchatcontrol.bypass.spam:
+    description: Anti-spam and chat delay are not applied
+    default: false
+  jchatcontrol.bypass.delay:
+    description: Chat delay is not applied (duplicate / flood checks still are)
+    default: false
   jchatcontrol.bypass.ai:
     description: Only local filters (word lists / regex) are used for this player, never the AI
     default: false

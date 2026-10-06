@@ -12,6 +12,10 @@ you-were-muted: '{prefix}&cYou have been muted. &7Duration: &f{time} &8| &7Reaso
 you-were-unmuted: '{prefix}&aYou are no longer muted.'
 default-mute-reason: 'Breaking the chat rules'
 
+spam-delay: '{prefix}&cYou are typing too fast! Wait &f{seconds} &cseconds.'
+spam-duplicate: '{prefix}&cDo not repeat the same message.'
+spam-burst: '{prefix}&cYou are sending too many messages, slow down.'
+spam-alert: '&8[&cJCC&8] &f{player} &7was punished for spamming &8({context})'
 staff-alert: '&8[&cJCC&8] &f{player} &8» &7{category} &8[&7{context}/{source}/{action}&8] &7{message} &8({detail})'
 
 no-permission: '{prefix}&cYou do not have permission.'

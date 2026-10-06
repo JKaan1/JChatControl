@@ -3,6 +3,7 @@ package dev.jkaanof.jchatcontrol.bukkit;
 import dev.jkaanof.jchatcontrol.core.Action;
 import dev.jkaanof.jchatcontrol.core.CategorySettings;
 import dev.jkaanof.jchatcontrol.core.FilterEngine;
+import dev.jkaanof.jchatcontrol.core.SpamGuard;
 import dev.jkaanof.jchatcontrol.core.TextNormalizer;
 import dev.jkaanof.jchatcontrol.core.Verdict;
 import org.bukkit.Bukkit;
@@ -116,6 +117,49 @@ public final class Moderator {
             // 2) commands for crossed violation point thresholds
             for (String cmd : thresholdCommands) {
                 dispatch(cmd, player.getName(), player.getUniqueId().toString(), v, message, context, total);
+            }
+        });
+    }
+
+    /**
+     * Anti-spam / chat delay block. Sends the reason to the player and, when the spam threshold is reached,
+     * runs the anti-spam punish commands. Safe to call from any thread.
+     */
+    public void spamBlocked(Player player, SpamGuard.Result r, String message, String context) {
+        plugin.stats().spamBlocked.increment();
+        Lang lang = plugin.lang();
+        switch (r.type()) {
+            case DELAY -> lang.send(player, "spam-delay", "seconds",
+                    String.format(Locale.ROOT, "%.1f", Math.max(0.1, r.remainingMs() / 1000.0)));
+            case DUPLICATE -> lang.send(player, "spam-duplicate");
+            case BURST -> lang.send(player, "spam-burst");
+            default -> {
+                return;
+            }
+        }
+        if (!r.punish()) {
+            return;
+        }
+        plugin.violationLog().log(player.getName(), context, "spam", r.type().name().toLowerCase(Locale.ROOT), "", message);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            JChatControl.Settings s = plugin.settings();
+            if (s.spamNotifyStaff) {
+                String alert = lang.get("spam-alert", "player", player.getName(), "context", context);
+                for (Player staff : Bukkit.getOnlinePlayers()) {
+                    if (staff.hasPermission("jchatcontrol.notify")) {
+                        staff.sendMessage(alert);
+                    }
+                }
+            }
+            for (String cmd : s.spamCommands) {
+                String c = cmd.replace("{player}", player.getName())
+                        .replace("{uuid}", player.getUniqueId().toString())
+                        .replace("{type}", r.type().name().toLowerCase(Locale.ROOT))
+                        .replace("{context}", context);
+                c = c.startsWith("/") ? c.substring(1) : c;
+                if (!c.isBlank()) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
+                }
             }
         });
     }

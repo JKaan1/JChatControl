@@ -12,6 +12,10 @@ you-were-muted: '{prefix}&cSusturuldun. &7Süre: &f{time} &8| &7Sebep: &f{reason
 you-were-unmuted: '{prefix}&aSusturman kaldırıldı.'
 default-mute-reason: 'Sohbet kurallarını ihlal'
 
+spam-delay: '{prefix}&cÇok hızlı yazıyorsun! &f{seconds} &csaniye bekle.'
+spam-duplicate: '{prefix}&cAynı mesajı tekrar tekrar yazma.'
+spam-burst: '{prefix}&cÇok fazla mesaj gönderiyorsun, biraz yavaşla.'
+spam-alert: '&8[&cJCC&8] &f{player} &7spam yaptığı için cezalandırıldı &8({context})'
 staff-alert: '&8[&cJCC&8] &f{player} &8» &7{category} &8[&7{context}/{source}/{action}&8] &7{message} &8({detail})'
 
 no-permission: '{prefix}&cBunun için yetkin yok.'

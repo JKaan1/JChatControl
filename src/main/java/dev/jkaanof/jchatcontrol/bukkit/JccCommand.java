@@ -166,6 +166,7 @@ public final class JccCommand implements TabExecutor {
         lang.send(sender, "stats-line", "key", "AI requests", "value", s.aiRequests.sum() + " (" + s.aiMessages.sum()
                 + " messages, avg " + s.averageAiLatency() + "ms, errors " + s.aiErrors.sum() + ", dedup "
                 + s.aiDeduplicated.sum() + ", rate-limited " + s.rateLimited.sum() + ")");
+        lang.send(sender, "stats-line", "key", "Anti-spam", "value", s.spamBlocked.sum() + " blocked (never reached the filters / AI)");
         lang.send(sender, "stats-line", "key", "Learned", "value", "allowed +" + s.learnedAllowed.sum() + ", blocked +"
                 + s.learnedBlocked.sum() + ", pending " + engine.learning().pending().size() + ", candidates "
                 + engine.learning().candidateCount());
