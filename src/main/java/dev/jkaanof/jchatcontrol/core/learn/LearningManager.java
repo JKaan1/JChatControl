@@ -43,6 +43,28 @@ public final class LearningManager {
         public int maxCandidates = 50000;
     }
 
+    /** Notified when the AI teaches a new blocked word (directly or as pending approval). */
+    public interface Listener {
+        void onLearned(String word, String category, boolean pending);
+    }
+
+    private volatile Listener listener;
+
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
+
+    private void notifyLearned(String word, String category, boolean pending) {
+        Listener l = listener;
+        if (l != null) {
+            try {
+                l.onLearned(word, category, pending);
+            } catch (RuntimeException e) {
+                logger.warning("[Learning] listener failed: " + e.getMessage());
+            }
+        }
+    }
+
     /** A learned / pending blocked word: normalized word + category. */
     public record LearnedWord(String word, String category) {
     }
@@ -224,10 +246,12 @@ public final class LearningManager {
                 if (settings.requireApproval) {
                     if (pending.putIfAbsent(w, category) == null) {
                         logger.info("[Learning] '" + w + "' (" + category + ") waits for approval: /jcc learn approve " + w);
+                        notifyLearned(w, category, true);
                     }
                 } else {
                     addBlocked(w, category);
                     stats.learnedBlocked.increment();
+                    notifyLearned(w, category, false);
                 }
             }
         }

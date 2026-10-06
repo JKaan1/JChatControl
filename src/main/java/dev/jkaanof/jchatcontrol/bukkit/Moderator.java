@@ -67,7 +67,7 @@ public final class Moderator {
                 decision = Decision.CANCEL;
             }
         }
-        punish(player, v, n.raw(), context, action);
+        punish(player, v, n.raw(), n, context, action);
         return decision;
     }
 
@@ -77,10 +77,11 @@ public final class Moderator {
             return;
         }
         plugin.lang().send(player, "late-violation", "category", displayName(v.primaryCategory()));
-        punish(player, v, message, context, Action.LOG);
+        punish(player, v, message, null, context, Action.LOG);
     }
 
-    private void punish(Player player, Verdict v, String message, String context, Action action) {
+    private void punish(Player player, Verdict v, String message, TextNormalizer.Normalized n, String context,
+                        Action action) {
         FilterEngine engine = plugin.engine();
         int points = engine.pointsFor(v);
         String category = displayName(v.primaryCategory());
@@ -110,6 +111,7 @@ public final class Moderator {
                 thresholdCommands = plugin.violations().add(player.getUniqueId(), points);
                 total = plugin.violations().points(player.getUniqueId());
             }
+            plugin.discord().violation(player.getName(), player.getUniqueId(), v, message, n, context, action, total);
             // 1) commands for this detection source (word list / regex / AI)
             for (String cmd : s.violationCommands.resolve(v)) {
                 dispatch(cmd, player.getName(), player.getUniqueId().toString(), v, message, context, total);
@@ -141,6 +143,7 @@ public final class Moderator {
             return;
         }
         plugin.violationLog().log(player.getName(), context, "spam", r.type().name().toLowerCase(Locale.ROOT), "", message);
+        plugin.discord().spam(player.getName(), player.getUniqueId(), r.type(), message, context);
         Bukkit.getScheduler().runTask(plugin, () -> {
             JChatControl.Settings s = plugin.settings();
             if (s.spamNotifyStaff) {

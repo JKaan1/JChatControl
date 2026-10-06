@@ -95,6 +95,7 @@ public final class JChatControl extends JavaPlugin {
     private volatile Lang lang;
     private volatile ViolationManager violations;
     private volatile ViolationLog violationLog;
+    private volatile DiscordNotifier discord;
     private volatile SpamGuard chatSpam = new SpamGuard(new SpamGuard.Settings());
     private volatile SpamGuard commandSpam = new SpamGuard(new SpamGuard.Settings());
     private MuteManager mutes;
@@ -248,6 +249,11 @@ public final class JChatControl extends JavaPlugin {
                 }
             }
 
+            DiscordNotifier newDiscord = new DiscordNotifier(this, cfg.getSection("discord"), http, scheduler, getLogger());
+            if (newEngine.learning() != null) {
+                newEngine.learning().setListener((word, category, pending) -> discord().learned(word, category, pending));
+            }
+            this.discord = newDiscord;
             SpamGuard.Settings spam = readSpamSettings(cfg);
             this.chatSpam = new SpamGuard(spam);
             this.commandSpam = new SpamGuard(spam);
@@ -597,6 +603,15 @@ public final class JChatControl extends JavaPlugin {
 
     public ViolationManager violations() {
         return violations;
+    }
+
+    public DiscordNotifier discord() {
+        DiscordNotifier d = discord;
+        if (d == null) {
+            d = DiscordNotifier.disabled(this, http, scheduler, getLogger());
+            discord = d;
+        }
+        return d;
     }
 
     public SpamGuard chatSpam() {

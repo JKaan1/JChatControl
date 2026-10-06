@@ -536,5 +536,68 @@ punishments:
     10:
       - 'jcc mute {player} 1d Sohbet kurallarını ağır ihlal (otomatik)'
 
+# --------------------------------------------------------------------------------------------------
+#  DISCORD WEBHOOK
+#   Discord'da: Kanal ayarları > Entegrasyonlar > Webhook'lar > Yeni Webhook > "Webhook URL'sini kopyala"
+#   Her olay türü için ayrı kanal (webhook-url) kullanabilirsin; boş bırakılırsa üstteki webhook-url kullanılır.
+#   Mesajlar arka planda kuyruğa alınır, 2 saniyede bir tek mesajda (en fazla 10 embed) toplu gönderilir ve
+#   Discord'un hız limitine (429) uyulur. Sunucu (TPS) etkilenmez. Test: /jcc discord test
+# --------------------------------------------------------------------------------------------------
+discord:
+  enabled: false
+  webhook-url: ""
+  username: "JChatControl"
+  avatar-url: ""
+  server-name: "Minecraft Sunucum"
+  # Embed sağ üstündeki oyuncu kafası ({uuid} {player}). Boş = gösterme
+  player-avatar-url: "https://mc-heads.net/avatar/{uuid}/64"
+  footer-icon-url: ""
+  # false: embed yerine düz metin mesaj gönder
+  embeds: true
+  batch-ms: 2000
+  max-queue: 200
+  privacy:
+    hide-message: false      # oyuncunun mesajını Discord'a hiç gönderme
+    spoiler: true            # mesaj ve kelimeler ||spoiler|| içinde gösterilsin (tıklayınca açılır)
+    censor-message: false    # mesajdaki kötü kelimeleri *** yap
+  events:
+    violation:
+      enabled: true
+      webhook-url: ""
+      # sadece bu aşamalar gönderilsin (boş = hepsi): word-list, regex, ai, cache
+      sources: []
+      # sadece bu kategoriler gönderilsin (boş = hepsi)
+      categories: []
+      # kategoriye özel kanal, örn: racism: "https://discord.com/api/webhooks/..."
+      category-webhooks: {}
+    spam:
+      enabled: true          # sadece anti-spam CEZASI verildiğinde (her engellenen mesajda değil)
+      webhook-url: ""
+    mute:
+      enabled: true          # /jcc mute ve otomatik susturmalar
+      webhook-url: ""
+    unmute:
+      enabled: false
+      webhook-url: ""
+    learned-word:
+      enabled: true          # yapay zekanın öğrettiği yeni yasaklı kelime / onay bekleyen kelime
+      webhook-url: ""
+  # Embed renkleri (hex). Kategori id'si ile renk verebilirsin.
+  colors:
+    default: "#E74C3C"
+    profanity: "#E74C3C"
+    insult: "#E67E22"
+    racism: "#992D22"
+    religion: "#F1C40F"
+    language: "#F1C40F"
+    politics: "#3498DB"
+    sexual: "#E91E63"
+    threats: "#7B0000"
+    advertising: "#9B59B6"
+    spam: "#F39C12"
+    mute: "#8E44AD"
+    unmute: "#2ECC71"
+    learned: "#1ABC9C"
+
 logging:
   violations: true   # logs/violations-YYYY-MM-DD.log

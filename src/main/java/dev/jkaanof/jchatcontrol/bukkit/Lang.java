@@ -65,6 +65,15 @@ public final class Lang {
         return color(s);
     }
 
+    /** Message without any color codes (for Discord, logs ...). Placeholders are inserted verbatim. */
+    public String plain(String key, Object... placeholders) {
+        String s = ChatColor.stripColor(color(raw(key).replace("{prefix}", "")));
+        for (int i = 0; i + 1 < placeholders.length; i += 2) {
+            s = s.replace("{" + placeholders[i] + "}", String.valueOf(placeholders[i + 1]));
+        }
+        return s.trim();
+    }
+
     public List<String> getList(String key) {
         List<String> l = file.getStringList(key);
         if (l.isEmpty()) {

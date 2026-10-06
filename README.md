@@ -110,6 +110,30 @@ anti-spam:
 Benzerlik normalize edilmiş metin üzerinden ölçülür: `selam!!`, `SELAAAM` ve `selam` aynı mesaj sayılır.
 Yetkiler: `jchatcontrol.bypass.spam` (anti-spam kapalı), `jchatcontrol.bypass.delay` (sadece bekleme süresi kapalı).
 
+## Discord webhook (embed)
+İhlaller, spam cezaları, susturmalar ve yapay zekanın öğrendiği kelimeler Discord'a embed olarak gönderilir.
+```yaml
+discord:
+  enabled: true
+  webhook-url: "https://discord.com/api/webhooks/..."
+  server-name: "Sunucum"
+  privacy: {hide-message: false, spoiler: true, censor-message: false}
+  events:
+    violation:    {enabled: true, webhook-url: "", sources: [], categories: [], category-webhooks: {}}
+    spam:         {enabled: true}
+    mute:         {enabled: true}
+    unmute:       {enabled: false}
+    learned-word: {enabled: true}
+  colors: {racism: "#992D22", ...}
+```
+- İhlal embed'i: oyuncu (kafa resmiyle), kategori, **yakalayan aşama** (kelime listesi / regex / yapay zeka / önbellek),
+  işlem, yer (`chat`, `command:msg`, `sign` ...), ihlal puanı, yapay zeka güveni veya eşleşen kural, kelimeler ve mesaj.
+- Her olay türü ve her kategori için ayrı kanal kullanılabilir; `sources` / `categories` ile filtrelenebilir.
+- Mesaj ve kelimeler varsayılan olarak `||spoiler||` içinde; `hide-message` veya `censor-message` seçilebilir.
+- Embed'ler arka planda kuyruklanır ve 2 saniyede bir tek mesajda (en fazla 10 embed) gönderilir;
+  Discord hız limiti (429) beklenir, `@everyone` gibi etiketler devre dışıdır.
+- `/jcc discord test` test mesajı gönderir, `/jcc discord` gönderim durumunu gösterir.
+
 ## İhlal komutları (kelime listesi / regex / AI için ayrı)
 Her ihlalde, ihlali **hangi aşamanın** yakaladığına göre farklı komut çalıştırılabilir (susturma, uyarı, başka bir ceza plugini ...):
 ```yaml
@@ -147,6 +171,7 @@ Bu komutlar puan eşiği komutlarından **önce** çalışır. Dahili susturma, 
 | `/jcc learn [list\|approve\|deny\|approveall]` | AI'nın önerdiği kelimeler (onay modu) |
 | `/jcc ai [status\|on\|off]` | Yapay zeka kontrolü |
 | `/jcc cache [clear]` | Karar önbelleği |
+| `/jcc discord [status\|test]` | Discord webhook durumu / test mesajı |
 | `/jcc mute <oyuncu> <süre> [sebep]` / `unmute <oyuncu>` | Dahili susturma (`30s`, `10m`, `2h`, `1d`, `perm`) |
 | `/jcc violations <oyuncu> [reset]` | İhlal puanları |
 | `/jcc reload` / `/jcc save` | Yeniden yükle / kaydet |

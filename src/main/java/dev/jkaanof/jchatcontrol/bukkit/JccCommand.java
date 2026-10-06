@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 public final class JccCommand implements TabExecutor {
 
     private static final List<String> SUBS = List.of("help", "reload", "stats", "test", "simulate", "allow", "unallow", "block",
-            "unblock", "learn", "cache", "ai", "mute", "unmute", "violations", "save");
+            "unblock", "learn", "cache", "ai", "discord", "mute", "unmute", "violations", "save");
 
     private final JChatControl plugin;
 
@@ -116,6 +116,16 @@ public final class JccCommand implements TabExecutor {
                 }
             }
             case "ai" -> ai(sender, engine, args);
+            case "discord" -> {
+                DiscordNotifier d = plugin.discord();
+                if (args.length > 1 && args[1].equalsIgnoreCase("test")) {
+                    lang.send(sender, d.test(sender.getName()) ? "discord-test-sent" : "discord-disabled");
+                } else {
+                    lang.send(sender, "discord-status", "state", d.enabled() ? "ON" : "OFF",
+                            "sent", d.webhook().sentCount(), "failed", d.webhook().failedCount(),
+                            "queued", d.webhook().queued());
+                }
+            }
             case "mute" -> mute(sender, args);
             case "unmute" -> {
                 if (args.length < 2) {
@@ -125,6 +135,10 @@ public final class JccCommand implements TabExecutor {
                 OfflinePlayer target = offline(args[1]);
                 boolean ok = target != null && plugin.mutes().unmute(target.getUniqueId());
                 lang.send(sender, ok ? "unmuted" : "not-muted", "player", args[1]);
+                if (ok) {
+                    plugin.discord().unmute(target.getName() == null ? args[1] : target.getName(), target.getUniqueId(),
+                            by(sender));
+                }
                 if (ok && target.getPlayer() != null) {
                     lang.send(target.getPlayer(), "you-were-unmuted");
                 }
@@ -335,10 +349,15 @@ public final class JccCommand implements TabExecutor {
         reason = active.reason();
         String time = active.until() == 0 ? "∞" : MuteManager.format(active.until() - System.currentTimeMillis());
         lang.send(sender, "muted-player", "player", name, "time", time, "reason", reason);
+        plugin.discord().mute(name, target.getUniqueId(), time, reason, by(sender));
         Player online = target.getPlayer();
         if (online != null) {
             lang.send(online, "you-were-muted", "time", time, "reason", reason);
         }
+    }
+
+    private String by(CommandSender sender) {
+        return sender instanceof Player ? sender.getName() : plugin.lang().plain("discord-by-console");
     }
 
     @SuppressWarnings("deprecation")
@@ -364,6 +383,7 @@ public final class JccCommand implements TabExecutor {
                 case "learn" -> options.addAll(List.of("list", "approve", "deny", "approveall"));
                 case "cache" -> options.add("clear");
                 case "ai" -> options.addAll(List.of("status", "on", "off"));
+                case "discord" -> options.addAll(List.of("status", "test"));
                 case "mute", "unmute", "violations", "simulate" -> Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                 case "test" -> options.add("-l");
                 default -> {
